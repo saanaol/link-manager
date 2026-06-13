@@ -70,9 +70,13 @@ def show_links():
     if "user_id" not in session:
         return redirect("/login")
 
-    sql = "SELECT * FROM links"
+    sql = "SELECT * FROM links ORDER BY id DESC"
     links = db.query(sql)
-    return render_template("links.html", links=links)
+
+    return render_template("links.html",
+        links = links,
+        search_performed = False,
+        query = "")
 
 @app.route("/add_link", methods=["POST"])
 def add_link():
@@ -105,12 +109,19 @@ def remove_link(link_id):
 
 @app.route("/search_links", methods=["GET"])
 def search_links():
-    query = request.args.get("query")
-    user_id = session.get("user_id")
-    if not user_id:
+    if "user_id" not in session:
         return redirect("/login")
 
-    sql = "SELECT * FROM links WHERE title LIKE ?"
-    links = db.query(sql, ['%' + query + '%'])  
-    return render_template("links.html", links=links, search_performed=True)
+    query = request.args.get("query", "").strip()
+
+    if not query:
+        return redirect("/links")
+
+    sql = "SELECT * FROM links WHERE title LIKE ? ORDER BY id DESC"
+    links = db.query(sql, ["%" + query + "%"])
+
+    return render_template("links.html",
+        links = links,
+        search_performed = True,
+        query = query)
 

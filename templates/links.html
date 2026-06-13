@@ -8,64 +8,79 @@
 <body>
     <header>
         <p>You are signed in as {{ session.username }}</p>
+
         <form action="/logout" method="post" style="display:inline;">
             <input type="submit" value="Sign out">
         </form>
     </header>
 
     <h1>Add new link</h1>
+
     <form action="/add_link" method="post">
         <p>
-            Title: <input type="text" name="title" required>
+            Title:
+            <input type="text" name="title" required>
         </p>
+
         <p>
-            URL: <input type="text" name="url" required>
+            URL:
+            <input type="text" name="url" required>
         </p>
+
         <input type="submit" value="Save">
     </form>
 
     <h2>Links</h2>
 
     <form action="/search_links" method="get">
-        <input type="text" name="query" placeholder="Search for a link..." required>
+        <input
+            type="text"
+            name="query"
+            placeholder="Search for a link..."
+            value="{{ query }}"
+            required
+        >
         <input type="submit" value="Search">
     </form>
 
-    {% if search_performed is not none %}
-        {% if links and links|length > 0 %}
-            <h3>Links which matched the search:</h3>
-            <ul>
-                {% for link in links %}
-                    <li>
-                        <a href="{{ link.url }}">{{ link.title }}</a>
-                        <form action="/remove_link/{{ link.id }}" method="post" style="display:inline;">
-                            <input type="submit" value="Delete">
-                        </form>
-                        <a href="/edit_link/{{ link.id }}">Edit/view</a>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <h3>No link was found matching your search.</h3>
-        {% endif %}
+    {% if search_performed %}
+        <p>
+            Search results for: <strong>{{ query }}</strong>
+        </p>
+
+        <p>
+            <a href="/links">Show all links</a>
+        </p>
     {% endif %}
 
-    {% if search_performed is none or links is none %}
-        <h3>Links:</h3>
+    {% if links and links|length > 0 %}
+        {% if search_performed %}
+            <h3>Links which matched the search:</h3>
+        {% else %}
+            <h3>Links:</h3>
+        {% endif %}
+
         <ul>
-            {% for link in all_links %}
+            {% for link in links %}
                 <li>
                     <a href="{{ link.url }}">{{ link.title }}</a>
+
                     <form action="/remove_link/{{ link.id }}" method="post" style="display:inline;">
                         <input type="submit" value="Delete">
                     </form>
-                    <a href="/edit_link/{{ link.id }}">Edit</a>
+
+                    <a href="/edit_link/{{ link.id }}">Edit/view</a>
                 </li>
             {% endfor %}
         </ul>
+    {% else %}
+        {% if search_performed %}
+            <h3>No link was found matching your search.</h3>
+        {% else %}
+            <h3>No links have been added yet.</h3>
+        {% endif %}
     {% endif %}
 </body>
 
 </html>
-
 
