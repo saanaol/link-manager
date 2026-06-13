@@ -1,15 +1,13 @@
-<!DOCTYPE html>
-<html>
+{% extends "layout.html" %}
 
-<head>
-    <title>Username created</title>
-</head>
+{% block content %}
 
-<body>
-    <h1>Username created successfully!</h1>
-    <p>You can now sign in.</p>
+<h2>Username created successfully!</h2>
+
+<p>You can now sign in.</p>
+
+<p>
     <a href="/login">Sign in</a>
-</body>
+</p>
 
-</html>
-
+{% endblock %}

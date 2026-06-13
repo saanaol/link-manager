@@ -27,4 +27,3 @@ Run the following commands:
 Then open the application in your browser: http://127.0.0.1:5000
 
 In the application, you can register a new username, log in, add links, view, edit or delete links, and search links by title.
-

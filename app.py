@@ -73,7 +73,8 @@ def show_links():
     sql = "SELECT * FROM links ORDER BY id DESC"
     links = db.query(sql)
 
-    return render_template("links.html",
+    return render_template(
+    	"links.html",
         links = links,
         search_performed = False,
         query = "")
@@ -120,8 +121,8 @@ def search_links():
     sql = "SELECT * FROM links WHERE title LIKE ? ORDER BY id DESC"
     links = db.query(sql, ["%" + query + "%"])
 
-    return render_template("links.html",
+    return render_template(
+        "links.html",
         links = links,
         search_performed = True,
         query = query)
-
