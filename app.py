@@ -173,3 +173,4 @@ def search_links():
         link_categories = link_categories,
         search_performed = True,
         query = query)
+        

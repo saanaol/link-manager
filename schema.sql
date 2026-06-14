@@ -28,3 +28,4 @@ INSERT INTO categories (name) VALUES
     ('Work'),
     ('Article'),
     ('Other');
+    
