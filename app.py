@@ -73,20 +73,51 @@ def show_links():
     sql = "SELECT * FROM links ORDER BY id DESC"
     links = db.query(sql)
 
+    categories = db.query("SELECT id, name FROM categories ORDER BY name")
+
+    link_categories = {}
+
+    for link in links:
+        sql = """
+            SELECT c.name
+            FROM categories c
+            JOIN link_categories lc ON c.id = lc.category_id
+            WHERE lc.link_id = ?
+            ORDER BY c.name
+        """
+        link_categories[link["id"]] = db.query(sql, [link["id"]])
+
     return render_template(
-    	"links.html",
+        "links.html",
         links = links,
+        categories = categories,
+        link_categories = link_categories,
         search_performed = False,
         query = "")
-
+    
 @app.route("/add_link", methods=["POST"])
 def add_link():
+    if "user_id" not in session:
+        return redirect("/login")
+
     title = request.form["title"]
     url = request.form["url"]
     user_id = session["user_id"]
 
     sql = "INSERT INTO links (title, url, user_id) VALUES (?, ?, ?)"
     db.execute(sql, [title, url, user_id])
+
+    link_id = db.last_insert_id()
+
+    category_ids = request.form.getlist("categories")
+
+    for category_id in category_ids:
+        sql = """
+            INSERT INTO link_categories (link_id, category_id)
+            VALUES (?, ?)
+        """
+        db.execute(sql, [link_id, category_id])
+
     return redirect("/links")
 
 @app.route("/edit_link/<int:link_id>", methods=["GET", "POST"])
@@ -121,8 +152,24 @@ def search_links():
     sql = "SELECT * FROM links WHERE title LIKE ? ORDER BY id DESC"
     links = db.query(sql, ["%" + query + "%"])
 
+    categories = db.query("SELECT id, name FROM categories ORDER BY name")
+
+    link_categories = {}
+
+    for link in links:
+        sql = """
+            SELECT c.name
+            FROM categories c
+            JOIN link_categories lc ON c.id = lc.category_id
+            WHERE lc.link_id = ?
+            ORDER BY c.name
+        """
+        link_categories[link["id"]] = db.query(sql, [link["id"]])
+
     return render_template(
         "links.html",
         links = links,
+        categories = categories,
+        link_categories = link_categories,
         search_performed = True,
         query = query)

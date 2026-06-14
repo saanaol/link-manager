@@ -15,7 +15,19 @@
         <input type="text" name="url" required>
     </p>
 
-    <input type="submit" value="Save">
+    <p>Categories:</p>
+
+    {% for category in categories %}
+        <label>
+            <input type="checkbox" name="categories" value="{{ category.id }}">
+            {{ category.name }}
+        </label>
+        <br>
+    {% endfor %}
+
+    <p>
+        <input type="submit" value="Save">
+    </p>
 </form>
 
 <h2>Links</h2>
@@ -52,6 +64,16 @@
         {% for link in links %}
             <li>
                 <a href="{{ link.url }}">{{ link.title }}</a>
+
+                {% if link_categories[link.id] %}
+                    <br>
+                    Categories:
+                    {% for category in link_categories[link.id] %}
+                        {{ category.name }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                {% endif %}
+
+                <br>
 
                 <form action="/remove_link/{{ link.id }}" method="post" style="display:inline;">
                     <input type="submit" value="Delete">
