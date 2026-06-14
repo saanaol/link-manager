@@ -70,7 +70,12 @@ def show_links():
     if "user_id" not in session:
         return redirect("/login")
 
-    sql = "SELECT * FROM links ORDER BY id DESC"
+    sql = """
+    SELECT l.id, l.title, l.url, l.user_id, u.username
+    FROM links l
+    JOIN users u ON l.user_id = u.id
+    ORDER BY l.id DESC
+    """
     links = db.query(sql)
 
     categories = db.query("SELECT id, name FROM categories ORDER BY name")
@@ -149,7 +154,13 @@ def search_links():
     if not query:
         return redirect("/links")
 
-    sql = "SELECT * FROM links WHERE title LIKE ? ORDER BY id DESC"
+    sql = """
+    SELECT l.id, l.title, l.url, l.user_id, u.username
+    FROM links l
+    JOIN users u ON l.user_id = u.id
+    WHERE l.title LIKE ?
+    ORDER BY l.id DESC
+    """
     links = db.query(sql, ["%" + query + "%"])
 
     categories = db.query("SELECT id, name FROM categories ORDER BY name")
@@ -173,4 +184,34 @@ def search_links():
         link_categories = link_categories,
         search_performed = True,
         query = query)
+        
+@app.route("/user/<int:user_id>")
+def user_page(user_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    sql = "SELECT id, username FROM users WHERE id = ?"
+    result = db.query(sql, [user_id])
+
+    if not result:
+        return "User not found", 404
+
+    user = result[0]
+
+    sql = """
+        SELECT id, title, url
+        FROM links
+        WHERE user_id = ?
+        ORDER BY id DESC
+    """
+    user_links = db.query(sql, [user_id])
+
+    sql = "SELECT COUNT(*) AS count FROM links WHERE user_id = ?"
+    link_count = db.query(sql, [user_id])[0]["count"]
+
+    return render_template(
+        "user.html",
+        user = user,
+        user_links = user_links,
+        link_count = link_count)
         

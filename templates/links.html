@@ -65,6 +65,10 @@
             <li>
                 <a href="{{ link.url }}">{{ link.title }}</a>
 
+                <br>
+                Added by:
+                <a href="/user/{{ link.user_id }}">{{ link.username }}</a>
+
                 {% if link_categories[link.id] %}
                     <br>
                     Categories:
@@ -92,4 +96,3 @@
 {% endif %}
 
 {% endblock %}
-
