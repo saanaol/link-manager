@@ -29,3 +29,11 @@ INSERT INTO categories (name) VALUES
     ('Article'),
     ('Other');
     
+CREATE TABLE comments (
+    id INTEGER PRIMARY KEY,
+    link_id INTEGER REFERENCES links ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users,
+    content TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+    

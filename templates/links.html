@@ -77,6 +77,33 @@
                     {% endfor %}
                 {% endif %}
 
+                <h4>Additional information</h4>
+
+                {% if comments[link.id] %}
+                    <ul>
+                        {% for comment in comments[link.id] %}
+                            <li>
+                                {{ comment.content }}
+                                — {{ comment.username }}, {{ comment.created_at }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No additional information yet.</p>
+                {% endif %}
+
+                {% if link.user_id != session.user_id %}
+                    <form action="/add_comment/{{ link.id }}" method="post">
+                        <input
+                            type="text"
+                            name="content"
+                            placeholder="Add additional information"
+                            required
+                        >
+                        <input type="submit" value="Send">
+                    </form>
+                {% endif %}
+
                 <br>
 
                 <form action="/remove_link/{{ link.id }}" method="post" style="display:inline;">
