@@ -206,6 +206,9 @@ def edit_link(link_id):
 
     link = result[0]
 
+    if link["user_id"] != session["user_id"]:
+        return "You can only edit your own links", 403
+
     if request.method == "GET":
         return render_template("edit_link.html", link=link)
 
@@ -226,6 +229,17 @@ def remove_link(link_id):
         return redirect("/login")
 
     check_csrf()
+
+    sql = "SELECT user_id FROM links WHERE id = ?"
+    result = db.query(sql, [link_id])
+
+    if not result:
+        return "Link not found", 404
+
+    link = result[0]
+
+    if link["user_id"] != session["user_id"]:
+        return "You can only delete your own links", 403
 
     sql = "DELETE FROM links WHERE id = ?"
     db.execute(sql, [link_id])

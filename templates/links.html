@@ -110,12 +110,14 @@
 
                 <br>
 
-                <form action="/remove_link/{{ link.id }}" method="post" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="submit" value="Delete">
-                </form>
+                {% if link.user_id == session.user_id %}
+                    <form action="/remove_link/{{ link.id }}" method="post" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="submit" value="Delete">
+                    </form>
 
-                <a href="/edit_link/{{ link.id }}">Edit/view</a>
+                    <a href="/edit_link/{{ link.id }}">Edit/view</a>
+                {% endif %}
             </li>
         {% endfor %}
     </ul>
