@@ -5,6 +5,8 @@
 <h2>Add new link</h2>
 
 <form action="/add_link" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     <p>
         Title:
         <input type="text" name="title" required>
@@ -94,6 +96,8 @@
 
                 {% if link.user_id != session.user_id %}
                     <form action="/add_comment/{{ link.id }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                         <input
                             type="text"
                             name="content"
@@ -107,6 +111,7 @@
                 <br>
 
                 <form action="/remove_link/{{ link.id }}" method="post" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="submit" value="Delete">
                 </form>
 

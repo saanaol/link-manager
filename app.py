@@ -1,11 +1,26 @@
 import sqlite3
-from flask import Flask, redirect, render_template, request, session
+from flask import Flask, redirect, render_template, request, session, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 import db
 import config
+import secrets
 
 app = Flask(__name__)
 app.secret_key = config.secret_key
+
+
+def csrf_token():
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_hex(16)
+    return session["csrf_token"]
+
+
+app.jinja_env.globals["csrf_token"] = csrf_token
+
+
+def check_csrf():
+    if request.form.get("csrf_token") != session.get("csrf_token"):
+        abort(403)
 
 
 @app.route("/")
@@ -52,12 +67,13 @@ def login():
     if not result:
         return render_template("passwords_not_matching.html")
 
-    user_id = result[0][0]
-    password_hash = result[0][1]
+    user_id = result[0]["id"]
+    password_hash = result[0]["password_hash"]
 
     if check_password_hash(password_hash, password):
         session["user_id"] = user_id
         session["username"] = username
+        session["csrf_token"] = secrets.token_hex(16)
         return redirect("/links")
 
     return render_template("passwords_not_matching.html")
@@ -65,8 +81,10 @@ def login():
 
 @app.route("/logout", methods=["POST"])
 def logout():
+    check_csrf()
     session.clear()
     return redirect("/login")
+
 
 @app.route("/links", methods=["GET"])
 def show_links():
@@ -122,6 +140,8 @@ def add_link():
     if "user_id" not in session:
         return redirect("/login")
 
+    check_csrf()
+
     title = request.form["title"]
     url = request.form["url"]
     user_id = session["user_id"]
@@ -147,6 +167,8 @@ def add_link():
 def add_comment(link_id):
     if "user_id" not in session:
         return redirect("/login")
+
+    check_csrf()
 
     sql = "SELECT user_id FROM links WHERE id = ?"
     result = db.query(sql, [link_id])
@@ -187,6 +209,8 @@ def edit_link(link_id):
     if request.method == "GET":
         return render_template("edit_link.html", link=link)
 
+    check_csrf()
+
     title = request.form["title"]
     url = request.form["url"]
 
@@ -200,6 +224,8 @@ def edit_link(link_id):
 def remove_link(link_id):
     if "user_id" not in session:
         return redirect("/login")
+
+    check_csrf()
 
     sql = "DELETE FROM links WHERE id = ?"
     db.execute(sql, [link_id])

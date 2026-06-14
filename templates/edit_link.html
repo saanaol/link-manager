@@ -5,6 +5,8 @@
 <h2>Edit link</h2>
 
 <form action="/edit_link/{{ link.id }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     <p>
         Title:
         <input type="text" name="title" value="{{ link.title }}" required>

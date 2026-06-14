@@ -17,6 +17,7 @@
             </p>
 
             <form action="/logout" method="post" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="submit" value="Sign out">
             </form>
         {% else %}
