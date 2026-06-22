@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2>Add new link</h2>
+
+<form action="/add_link" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <p>
+    <label for="title">Title</label>:<br>
+    <input id="title" type="text" name="title" required>
+  </p>
+
+  <p>
+    <label for="url">URL</label>:<br>
+    <input id="url" type="text" name="url" required>
+  </p>
+
+  <p>Categories:</p>
+
+  {% for category in categories %}
+    <p>
+      <label>
+        <input type="checkbox" name="categories" value="{{ category.id }}">
+        {{ category.name }}
+      </label>
+    </p>
+  {% endfor %}
+
+  <p>
+    <input type="submit" value="Save">
+  </p>
+</form>
+
+<p>
+  <a href="/links">Back to links</a>
+</p>
+
+{% endblock %}

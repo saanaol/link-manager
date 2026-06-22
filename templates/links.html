@@ -2,131 +2,119 @@
 
 {% block content %}
 
-<h2>Add new link</h2>
-
-<form action="/add_link" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-    <p>
-        Title:
-        <input type="text" name="title" required>
-    </p>
-
-    <p>
-        URL:
-        <input type="text" name="url" required>
-    </p>
-
-    <p>Categories:</p>
-
-    {% for category in categories %}
-        <label>
-            <input type="checkbox" name="categories" value="{{ category.id }}">
-            {{ category.name }}
-        </label>
-        <br>
-    {% endfor %}
-
-    <p>
-        <input type="submit" value="Save">
-    </p>
-</form>
-
 <h2>Links</h2>
 
+<p>
+  <a href="/links/new">Add new link</a>
+</p>
+
 <form action="/search_links" method="get">
+  <p>
     <input
-        type="text"
-        name="query"
-        placeholder="Search for a link..."
-        value="{{ query }}"
-        required
+      type="text"
+      name="query"
+      placeholder="Search for a link..."
+      value="{{ query }}"
+      required
     >
     <input type="submit" value="Search">
+  </p>
 </form>
 
 {% if search_performed %}
-    <p>
-        Search results for: <strong>{{ query }}</strong>
-    </p>
+  <p>
+    Search results for: <strong>{{ query }}</strong>
+  </p>
 
-    <p>
-        <a href="/links">Show all links</a>
-    </p>
+  <p>
+    <a href="/links">Show all links</a>
+  </p>
 {% endif %}
 
 {% if links and links|length > 0 %}
-    {% if search_performed %}
-        <h3>Links which matched the search:</h3>
-    {% else %}
-        <h3>Links:</h3>
-    {% endif %}
 
-    <ul>
-        {% for link in links %}
-            <li>
-                <a href="{{ link.url }}">{{ link.title }}</a>
+  {% if search_performed %}
+    <h3>Links which matched the search:</h3>
+  {% else %}
+    <h3>All links:</h3>
+  {% endif %}
 
-                <br>
-                Added by:
-                <a href="/user/{{ link.user_id }}">{{ link.username }}</a>
+  <ul>
+    {% for link in links %}
+      <li>
+        <p>
+          <a href="{{ link.url }}">{{ link.title }}</a>
+        </p>
 
-                {% if link_categories[link.id] %}
-                    <br>
-                    Categories:
-                    {% for category in link_categories[link.id] %}
-                        {{ category.name }}{% if not loop.last %}, {% endif %}
-                    {% endfor %}
-                {% endif %}
+        <p>
+          Added by:
+          <a href="/user/{{ link.user_id }}">{{ link.username }}</a>
+        </p>
 
-                <h4>Additional information</h4>
+        {% if link_categories[link.id] %}
+          <p>
+            Categories:
+            {% for category in link_categories[link.id] %}
+              {{ category.name }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </p>
+        {% endif %}
 
-                {% if comments[link.id] %}
-                    <ul>
-                        {% for comment in comments[link.id] %}
-                            <li>
-                                {{ comment.content }}
-                                — {{ comment.username }}, {{ comment.created_at }}
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p>No additional information yet.</p>
-                {% endif %}
+        <h4>Additional information</h4>
 
-                {% if link.user_id != session.user_id %}
-                    <form action="/add_comment/{{ link.id }}" method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if comments[link.id] %}
+          <ul>
+            {% for comment in comments[link.id] %}
+              <li>
+                {{ comment.content }}
+                — {{ comment.username }}, {{ comment.created_at }}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>No additional information yet.</p>
+        {% endif %}
 
-                        <input
-                            type="text"
-                            name="content"
-                            placeholder="Add additional information"
-                            required
-                        >
-                        <input type="submit" value="Send">
-                    </form>
-                {% endif %}
+        {% if link.user_id != session.user_id %}
+          <form action="/add_comment/{{ link.id }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                <br>
+            <p>
+              <label for="comment_{{ link.id }}">Add additional information</label>:<br>
+              <input
+                id="comment_{{ link.id }}"
+                type="text"
+                name="content"
+                required
+              >
+            </p>
 
-                {% if link.user_id == session.user_id %}
-                    <form action="/remove_link/{{ link.id }}" method="post" style="display:inline;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="submit" value="Delete">
-                    </form>
+            <input type="submit" value="Send">
+          </form>
+        {% endif %}
 
-                    <a href="/edit_link/{{ link.id }}">Edit/view</a>
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
+        {% if link.user_id == session.user_id %}
+          <p>
+            <a href="/edit_link/{{ link.id }}">Edit/view</a>
+          </p>
+
+          <form action="/remove_link/{{ link.id }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="submit" value="Delete">
+          </form>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+
 {% else %}
-    {% if search_performed %}
-        <h3>No link was found matching your search.</h3>
-    {% else %}
-        <h3>No links have been added yet.</h3>
-    {% endif %}
+
+  {% if search_performed %}
+    <h3>No link was found matching your search.</h3>
+  {% else %}
+    <h3>No links have been added yet.</h3>
+  {% endif %}
+
 {% endif %}
 
 {% endblock %}

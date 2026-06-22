@@ -84,6 +84,17 @@ def logout():
     check_csrf()
     session.clear()
     return redirect("/login")
+    
+    
+@app.route("/links/new")
+def new_link():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    sql = "SELECT id, name FROM categories ORDER BY name"
+    categories = db.query(sql)
+
+    return render_template("new_link.html", categories=categories)
 
 
 @app.route("/links", methods=["GET"])
