@@ -5,23 +5,50 @@
 <h2>Edit link</h2>
 
 <form action="/edit_link/{{ link.id }}" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <p>
-        Title:
-        <input type="text" name="title" value="{{ link.title }}" required>
-    </p>
+  <p>
+    <label for="title">Title</label>:<br>
+    <input
+      id="title"
+      type="text"
+      name="title"
+      value="{{ link.title }}"
+      maxlength="100"
+      required
+    >
+  </p>
 
-    <p>
-        URL:
-        <input type="text" name="url" value="{{ link.url }}" required>
-    </p>
+  <p>
+    <label for="url">URL</label>:<br>
+    <input
+      id="url"
+      type="text"
+      name="url"
+      value="{{ link.url }}"
+      maxlength="300"
+      required
+    >
+  </p>
 
+  <p>
+    <label for="notes">Notes</label>:<br>
+    <textarea
+      id="notes"
+      name="notes"
+      rows="5"
+      cols="50"
+      maxlength="1000"
+    >{{ link.notes or "" }}</textarea>
+  </p>
+
+  <p>
     <input type="submit" value="Save changes">
+  </p>
 </form>
 
 <p>
-    <a href="/links">Back to links</a>
+  <a href="/link/{{ link.id }}">Back to link</a>
 </p>
 
 {% endblock %}

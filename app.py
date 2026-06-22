@@ -23,6 +23,39 @@ def check_csrf():
         abort(403)
 
 
+def get_link(link_id):
+    sql = """
+        SELECT l.id, l.title, l.url, l.notes, l.user_id, u.username
+        FROM links l
+        JOIN users u ON l.user_id = u.id
+        WHERE l.id = ?
+    """
+    result = db.query(sql, [link_id])
+    return result[0] if result else None
+
+
+def get_link_categories(link_id):
+    sql = """
+        SELECT c.name
+        FROM categories c
+        JOIN link_categories lc ON c.id = lc.category_id
+        WHERE lc.link_id = ?
+        ORDER BY c.name
+    """
+    return db.query(sql, [link_id])
+
+
+def get_link_comments(link_id):
+    sql = """
+        SELECT c.content, c.created_at, u.username
+        FROM comments c
+        JOIN users u ON c.user_id = u.id
+        WHERE c.link_id = ?
+        ORDER BY c.id DESC
+    """
+    return db.query(sql, [link_id])
+
+
 @app.route("/")
 def index():
     if "user_id" in session:
@@ -84,17 +117,6 @@ def logout():
     check_csrf()
     session.clear()
     return redirect("/login")
-    
-    
-@app.route("/links/new")
-def new_link():
-    if "user_id" not in session:
-        return redirect("/login")
-
-    sql = "SELECT id, name FROM categories ORDER BY name"
-    categories = db.query(sql)
-
-    return render_template("new_link.html", categories=categories)
 
 
 @app.route("/links", methods=["GET"])
@@ -110,40 +132,48 @@ def show_links():
     """
     links = db.query(sql)
 
-    categories = db.query("SELECT id, name FROM categories ORDER BY name")
-
     link_categories = {}
 
     for link in links:
-        sql = """
-            SELECT c.name
-            FROM categories c
-            JOIN link_categories lc ON c.id = lc.category_id
-            WHERE lc.link_id = ?
-            ORDER BY c.name
-        """
-        link_categories[link["id"]] = db.query(sql, [link["id"]])
-
-    comments = {}
-
-    for link in links:
-        sql = """
-            SELECT c.content, c.created_at, u.username
-            FROM comments c
-            JOIN users u ON c.user_id = u.id
-            WHERE c.link_id = ?
-            ORDER BY c.id DESC
-        """
-        comments[link["id"]] = db.query(sql, [link["id"]])
+        link_categories[link["id"]] = get_link_categories(link["id"])
 
     return render_template(
         "links.html",
         links = links,
-        categories = categories,
         link_categories = link_categories,
-        comments = comments,
         search_performed = False,
         query = "")
+
+
+@app.route("/links/new")
+def new_link():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    sql = "SELECT id, name FROM categories ORDER BY name"
+    categories = db.query(sql)
+
+    return render_template("new_link.html", categories=categories)
+
+
+@app.route("/link/<int:link_id>")
+def show_link(link_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    link = get_link(link_id)
+
+    if not link:
+        abort(404)
+
+    categories = get_link_categories(link_id)
+    comments = get_link_comments(link_id)
+
+    return render_template(
+        "link.html",
+        link = link,
+        categories = categories,
+        comments = comments)
 
 
 @app.route("/add_link", methods=["POST"])
@@ -153,12 +183,22 @@ def add_link():
 
     check_csrf()
 
-    title = request.form["title"]
-    url = request.form["url"]
+    title = request.form["title"].strip()
+    url = request.form["url"].strip()
+    notes = request.form["notes"].strip()
     user_id = session["user_id"]
 
-    sql = "INSERT INTO links (title, url, user_id) VALUES (?, ?, ?)"
-    db.execute(sql, [title, url, user_id])
+    if not title or not url:
+        abort(403)
+
+    if len(title) > 100 or len(url) > 300 or len(notes) > 1000:
+        abort(403)
+
+    sql = """
+        INSERT INTO links (title, url, notes, user_id)
+        VALUES (?, ?, ?, ?)
+    """
+    db.execute(sql, [title, url, notes, user_id])
 
     link_id = db.last_insert_id()
 
@@ -171,7 +211,7 @@ def add_link():
         """
         db.execute(sql, [link_id, category_id])
 
-    return redirect("/links")
+    return redirect("/link/" + str(link_id))
 
 
 @app.route("/add_comment/<int:link_id>", methods=["POST"])
@@ -185,23 +225,25 @@ def add_comment(link_id):
     result = db.query(sql, [link_id])
 
     if not result:
-        return "Link not found", 404
+        abort(404)
 
     link = result[0]
 
     if link["user_id"] == session["user_id"]:
-        return "You cannot add additional information to your own link", 403
+        abort(403)
 
     content = request.form["content"].strip()
 
-    if content:
-        sql = """
-            INSERT INTO comments (link_id, user_id, content)
-            VALUES (?, ?, ?)
-        """
-        db.execute(sql, [link_id, session["user_id"], content])
+    if not content or len(content) > 500:
+        abort(403)
 
-    return redirect("/links")
+    sql = """
+        INSERT INTO comments (link_id, user_id, content)
+        VALUES (?, ?, ?)
+    """
+    db.execute(sql, [link_id, session["user_id"], content])
+
+    return redirect("/link/" + str(link_id))
 
 
 @app.route("/edit_link/<int:link_id>", methods=["GET", "POST"])
@@ -209,29 +251,37 @@ def edit_link(link_id):
     if "user_id" not in session:
         return redirect("/login")
 
-    sql = "SELECT * FROM links WHERE id = ?"
-    result = db.query(sql, [link_id])
+    link = get_link(link_id)
 
-    if not result:
-        return "Link not found", 404
-
-    link = result[0]
+    if not link:
+        abort(404)
 
     if link["user_id"] != session["user_id"]:
-        return "You can only edit your own links", 403
+        abort(403)
 
     if request.method == "GET":
         return render_template("edit_link.html", link=link)
 
     check_csrf()
 
-    title = request.form["title"]
-    url = request.form["url"]
+    title = request.form["title"].strip()
+    url = request.form["url"].strip()
+    notes = request.form.get("notes", "").strip()
 
-    sql = "UPDATE links SET title = ?, url = ? WHERE id = ?"
-    db.execute(sql, [title, url, link_id])
+    if not title or not url:
+        abort(403)
 
-    return redirect("/links")
+    if len(title) > 100 or len(url) > 300 or len(notes) > 1000:
+        abort(403)
+
+    sql = """
+        UPDATE links
+        SET title = ?, url = ?, notes = ?
+        WHERE id = ?
+    """
+    db.execute(sql, [title, url, notes, link_id])
+
+    return redirect("/link/" + str(link_id))
 
 
 @app.route("/remove_link/<int:link_id>", methods=["POST"])
@@ -245,12 +295,12 @@ def remove_link(link_id):
     result = db.query(sql, [link_id])
 
     if not result:
-        return "Link not found", 404
+        abort(404)
 
     link = result[0]
 
     if link["user_id"] != session["user_id"]:
-        return "You can only delete your own links", 403
+        abort(403)
 
     sql = "DELETE FROM links WHERE id = ?"
     db.execute(sql, [link_id])
@@ -272,43 +322,21 @@ def search_links():
         SELECT l.id, l.title, l.url, l.user_id, u.username
         FROM links l
         JOIN users u ON l.user_id = u.id
-        WHERE l.title LIKE ?
+        WHERE l.title LIKE ? OR l.url LIKE ? OR l.notes LIKE ?
         ORDER BY l.id DESC
     """
-    links = db.query(sql, ["%" + query + "%"])
-
-    categories = db.query("SELECT id, name FROM categories ORDER BY name")
+    pattern = "%" + query + "%"
+    links = db.query(sql, [pattern, pattern, pattern])
 
     link_categories = {}
 
     for link in links:
-        sql = """
-            SELECT c.name
-            FROM categories c
-            JOIN link_categories lc ON c.id = lc.category_id
-            WHERE lc.link_id = ?
-            ORDER BY c.name
-        """
-        link_categories[link["id"]] = db.query(sql, [link["id"]])
-
-    comments = {}
-
-    for link in links:
-        sql = """
-            SELECT c.content, c.created_at, u.username
-            FROM comments c
-            JOIN users u ON c.user_id = u.id
-            WHERE c.link_id = ?
-            ORDER BY c.id DESC
-        """
-        comments[link["id"]] = db.query(sql, [link["id"]])
+        link_categories[link["id"]] = get_link_categories(link["id"])
 
     return render_template(
         "links.html",
         links = links,
-        categories = categories,
         link_categories = link_categories,
-        comments = comments,
         search_performed = True,
         query = query)
 
@@ -322,7 +350,7 @@ def user_page(user_id):
     result = db.query(sql, [user_id])
 
     if not result:
-        return "User not found", 404
+        abort(404)
 
     user = result[0]
 

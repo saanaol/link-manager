@@ -5,10 +5,11 @@ CREATE TABLE users (
 );
 
 CREATE TABLE links (
-    id INTEGER PRIMARY KEY,
-    title TEXT NOT NULL,
-    url TEXT NOT NULL,
-    user_id INTEGER REFERENCES users
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  notes TEXT,
+  user_id INTEGER REFERENCES users
 );
 
 CREATE TABLE categories (

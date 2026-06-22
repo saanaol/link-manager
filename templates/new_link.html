@@ -9,12 +9,35 @@
 
   <p>
     <label for="title">Title</label>:<br>
-    <input id="title" type="text" name="title" required>
+    <input
+      id="title"
+      type="text"
+      name="title"
+      maxlength="100"
+      required
+    >
   </p>
 
   <p>
     <label for="url">URL</label>:<br>
-    <input id="url" type="text" name="url" required>
+    <input
+      id="url"
+      type="text"
+      name="url"
+      maxlength="300"
+      required
+    >
+  </p>
+
+  <p>
+    <label for="notes">Notes</label>:<br>
+    <textarea
+      id="notes"
+      name="notes"
+      rows="5"
+      cols="50"
+      maxlength="1000"
+    ></textarea>
   </p>
 
   <p>Categories:</p>

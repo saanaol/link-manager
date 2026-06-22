@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2>
+  {{ link.title }}:
+  &lt;<a href="{{ link.url }}">{{ link.url }}</a>&gt;
+</h2>
+
+{% if link.notes %}
+  <p>
+    Notes:
+    {{ link.notes }}
+  </p>
+{% endif %}
+
+<p>
+  Added by:
+  <a href="/user/{{ link.user_id }}">{{ link.username }}</a>
+</p>
+
+{% if categories %}
+  <p>
+    Categories:
+    {% for category in categories %}
+      {{ category.name }}{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </p>
+{% endif %}
+
+<h3>Additional information</h3>
+
+{% if comments %}
+  <ul>
+    {% for comment in comments %}
+      <li>
+        {{ comment.content }} — {{ comment.username }}, {{ comment.created_at }}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No additional information yet.</p>
+{% endif %}
+
+{% if link.user_id != session.user_id %}
+  <form action="/add_comment/{{ link.id }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <p>
+      <label for="content">Add additional information</label>:<br>
+      <input
+        id="content"
+        type="text"
+        name="content"
+        maxlength="500"
+        required
+      >
+    </p>
+
+    <p>
+      <input type="submit" value="Send">
+    </p>
+  </form>
+{% endif %}
+
+{% if link.user_id == session.user_id %}
+  <p>
+    <a href="/edit_link/{{ link.id }}">Edit link</a>
+  </p>
+
+  <form action="/remove_link/{{ link.id }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <p>
+      <input type="submit" value="Delete">
+    </p>
+  </form>
+{% endif %}
+
+<p>
+  <a href="/links">Back to links</a>
+</p>
+
+{% endblock %}
