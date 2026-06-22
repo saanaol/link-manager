@@ -16,7 +16,7 @@
     <ul>
         {% for link in user_links %}
             <li>
-                <a href="{{ link.url }}">{{ link.title }}</a>
+                <a href="/link/{{ link.id }}">{{ link.title }}</a>
             </li>
         {% endfor %}
     </ul>
