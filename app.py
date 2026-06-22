@@ -284,28 +284,30 @@ def edit_link(link_id):
     return redirect("/link/" + str(link_id))
 
 
-@app.route("/remove_link/<int:link_id>", methods=["POST"])
+@app.route("/remove_link/<int:link_id>", methods=["GET", "POST"])
 def remove_link(link_id):
     if "user_id" not in session:
         return redirect("/login")
 
-    check_csrf()
+    link = get_link(link_id)
 
-    sql = "SELECT user_id FROM links WHERE id = ?"
-    result = db.query(sql, [link_id])
-
-    if not result:
+    if not link:
         abort(404)
-
-    link = result[0]
 
     if link["user_id"] != session["user_id"]:
         abort(403)
 
-    sql = "DELETE FROM links WHERE id = ?"
-    db.execute(sql, [link_id])
+    if request.method == "GET":
+        return render_template("remove_link.html", link = link)
 
-    return redirect("/links")
+    check_csrf()
+
+    if "continue" in request.form:
+        sql = "DELETE FROM links WHERE id = ?"
+        db.execute(sql, [link_id])
+        return redirect("/links")
+
+    return redirect("/link/" + str(link_id))
 
 
 @app.route("/search_links", methods=["GET"])

@@ -68,13 +68,9 @@
     <a href="/edit_link/{{ link.id }}">Edit link</a>
   </p>
 
-  <form action="/remove_link/{{ link.id }}" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-    <p>
-      <input type="submit" value="Delete">
-    </p>
-  </form>
+  <p>
+    <a href="/remove_link/{{ link.id }}">Delete link</a>
+  </p>
 {% endif %}
 
 <p>
