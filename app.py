@@ -1,5 +1,5 @@
 import sqlite3
-from flask import Flask, redirect, render_template, request, session, abort
+from flask import Flask, redirect, render_template, request, session, abort, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 import db
 import config
@@ -66,14 +66,17 @@ def index():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "GET":
-        return render_template("register.html")
+        return render_template("register.html", filled = {})
 
-    username = request.form["username"]
+    username = request.form["username"].strip()
     password1 = request.form["password1"]
     password2 = request.form["password2"]
 
+    filled = {"username": username}
+
     if password1 != password2:
-        return render_template("passwords_not_matching.html")
+        flash("Passwords do not match")
+        return render_template("register.html", filled = filled)
 
     password_hash = generate_password_hash(password1)
 
@@ -81,24 +84,29 @@ def register():
         sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)"
         db.execute(sql, [username, password_hash])
     except sqlite3.IntegrityError:
-        return render_template("username_taken.html")
+        flash("Username is already taken")
+        return render_template("register.html", filled = filled)
 
-    return render_template("account_created.html")
-
+    flash("Account created. You can now sign in.")
+    return redirect("/login")
+    
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
     if request.method == "GET":
-        return render_template("login.html")
+        return render_template("login.html", filled = {})
 
-    username = request.form["username"]
+    username = request.form["username"].strip()
     password = request.form["password"]
+
+    filled = {"username": username}
 
     sql = "SELECT id, password_hash FROM users WHERE username = ?"
     result = db.query(sql, [username])
 
     if not result:
-        return render_template("passwords_not_matching.html")
+        flash("Invalid username or password")
+        return render_template("login.html", filled = filled)
 
     user_id = result[0]["id"]
     password_hash = result[0]["password_hash"]
@@ -109,7 +117,8 @@ def login():
         session["csrf_token"] = secrets.token_hex(16)
         return redirect("/links")
 
-    return render_template("passwords_not_matching.html")
+    flash("Invalid username or password")
+    return render_template("login.html", filled = filled)
 
 
 @app.route("/logout", methods=["POST"])

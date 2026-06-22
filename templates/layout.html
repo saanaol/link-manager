@@ -2,41 +2,47 @@
 <html>
 
 <head>
-    <title>Link Manager</title>
+  <title>Link Manager</title>
 </head>
 
 <body>
-    <h1>Link Manager</h1>
+  <h1>Link Manager</h1>
 
-    <header>
-        {% if session.username %}
-            <p>
-                You are signed in as
-                <a href="/user/{{ session.user_id }}">{{ session.username }}</a>
-            </p>
+  <header>
+    {% if session.username %}
+      <p>
+        You are signed in as
+        <a href="/user/{{ session.user_id }}">{{ session.username }}</a>
+      </p>
 
-            <p>
-                <a href="/links">Links</a>
-                |
-                <a href="/user/{{ session.user_id }}">My profile</a>
-            </p>
+      <p>
+        <a href="/links">Links</a>
+        |
+        <a href="/user/{{ session.user_id }}">My profile</a>
+      </p>
 
-            <form action="/logout" method="post" style="display:inline;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="submit" value="Sign out">
-            </form>
-        {% else %}
-            <p>
-                <a href="/login">Sign in</a>
-                |
-                <a href="/register">Register</a>
-            </p>
-        {% endif %}
-    </header>
+      <form action="/logout" method="post" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="submit" value="Sign out">
+      </form>
+    {% else %}
+      <p>
+        <a href="/login">Sign in</a>
+        |
+        <a href="/register">Register</a>
+      </p>
+    {% endif %}
+  </header>
 
-    <hr>
+  <hr>
 
-    {% block content %}{% endblock %}
+  {% for message in get_flashed_messages() %}
+    <p>
+      <strong>{{ message }}</strong>
+    </p>
+  {% endfor %}
+
+  {% block content %}{% endblock %}
 </body>
 
 </html>
