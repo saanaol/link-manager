@@ -8,7 +8,7 @@ import secrets
 app = Flask(__name__)
 app.secret_key = config.secret_key
 
-USERNAME_MIN_LENGTH = 3
+USERNAME_MIN_LENGTH = 2
 USERNAME_MAX_LENGTH = 16
 PASSWORD_MIN_LENGTH = 8
 TITLE_MAX_LENGTH = 100
@@ -71,7 +71,7 @@ def index():
     return redirect("/login")
 
 
-@app.route("/register", methods=["GET", "POST"])
+@app.route("/register", methods = ["GET", "POST"])
 def register():
     if request.method == "GET":
         return render_template("register.html", filled = {})
@@ -87,7 +87,7 @@ def register():
         return render_template("register.html", filled = filled)
 
     if len(username) < USERNAME_MIN_LENGTH:
-        flash("Username must be at least 3 characters long")
+        flash("Username must be at least 2 characters long")
         return render_template("register.html", filled = filled)
 
     if len(username) > USERNAME_MAX_LENGTH:
@@ -106,6 +106,13 @@ def register():
         flash("Passwords do not match")
         return render_template("register.html", filled = filled)
 
+    sql = "SELECT id FROM users WHERE lower(username) = lower(?)"
+    result = db.query(sql, [username])
+
+    if result:
+        flash("Username is already taken")
+        return render_template("register.html", filled = filled)
+
     password_hash = generate_password_hash(password1)
 
     try:
@@ -117,9 +124,9 @@ def register():
 
     flash("Account created. You can now sign in.")
     return redirect("/login")
-    
 
-@app.route("/login", methods=["POST", "GET"])
+
+@app.route("/login", methods = ["POST", "GET"])
 def login():
     if request.method == "GET":
         return render_template("login.html", filled = {})
@@ -129,7 +136,11 @@ def login():
 
     filled = {"username": username}
 
-    sql = "SELECT id, password_hash FROM users WHERE username = ?"
+    sql = """
+        SELECT id, username, password_hash
+        FROM users
+        WHERE lower(username) = lower(?)
+    """
     result = db.query(sql, [username])
 
     if not result:
@@ -141,7 +152,7 @@ def login():
 
     if check_password_hash(password_hash, password):
         session["user_id"] = user_id
-        session["username"] = username
+        session["username"] = result[0]["username"]
         session["csrf_token"] = secrets.token_hex(16)
         return redirect("/links")
 
@@ -149,14 +160,14 @@ def login():
     return render_template("login.html", filled = filled)
 
 
-@app.route("/logout", methods=["POST"])
+@app.route("/logout", methods = ["POST"])
 def logout():
     check_csrf()
     session.clear()
     return redirect("/login")
 
 
-@app.route("/links", methods=["GET"])
+@app.route("/links", methods = ["GET"])
 def show_links():
     if "user_id" not in session:
         return redirect("/login")
@@ -190,7 +201,7 @@ def new_link():
     sql = "SELECT id, name FROM categories ORDER BY name"
     categories = db.query(sql)
 
-    return render_template("new_link.html", categories=categories)
+    return render_template("new_link.html", categories = categories)
 
 
 @app.route("/link/<int:link_id>")
@@ -199,7 +210,6 @@ def show_link(link_id):
         return redirect("/login")
 
     link = get_link(link_id)
-
     if not link:
         abort(404)
 
@@ -213,7 +223,7 @@ def show_link(link_id):
         comments = comments)
 
 
-@app.route("/add_link", methods=["POST"])
+@app.route("/add_link", methods = ["POST"])
 def add_link():
     if "user_id" not in session:
         return redirect("/login")
@@ -267,9 +277,9 @@ def add_link():
         db.execute(sql, [link_id, category_id])
 
     return redirect("/link/" + str(link_id))
-    
 
-@app.route("/add_comment/<int:link_id>", methods=["POST"])
+
+@app.route("/add_comment/<int:link_id>", methods = ["POST"])
 def add_comment(link_id):
     if "user_id" not in session:
         return redirect("/login")
@@ -306,7 +316,7 @@ def add_comment(link_id):
     return redirect("/link/" + str(link_id))
 
 
-@app.route("/edit_link/<int:link_id>", methods=["GET", "POST"])
+@app.route("/edit_link/<int:link_id>", methods = ["GET", "POST"])
 def edit_link(link_id):
     if "user_id" not in session:
         return redirect("/login")
@@ -362,7 +372,7 @@ def edit_link(link_id):
     return redirect("/link/" + str(link_id))
 
 
-@app.route("/remove_link/<int:link_id>", methods=["GET", "POST"])
+@app.route("/remove_link/<int:link_id>", methods = ["GET", "POST"])
 def remove_link(link_id):
     if "user_id" not in session:
         return redirect("/login")
@@ -381,14 +391,21 @@ def remove_link(link_id):
     check_csrf()
 
     if "continue" in request.form:
+        sql = "DELETE FROM comments WHERE link_id = ?"
+        db.execute(sql, [link_id])
+
+        sql = "DELETE FROM link_categories WHERE link_id = ?"
+        db.execute(sql, [link_id])
+
         sql = "DELETE FROM links WHERE id = ?"
         db.execute(sql, [link_id])
+
         return redirect("/links")
 
     return redirect("/link/" + str(link_id))
 
 
-@app.route("/search_links", methods=["GET"])
+@app.route("/search_links", methods = ["GET"])
 def search_links():
     if "user_id" not in session:
         return redirect("/login")

@@ -4,6 +4,8 @@ CREATE TABLE users (
     password_hash TEXT
 );
 
+CREATE UNIQUE INDEX idx_users_username_lower ON users(lower(username));
+
 CREATE TABLE links (
   id INTEGER PRIMARY KEY,
   title TEXT NOT NULL,
