@@ -3,7 +3,7 @@ import db
 
 def get_link_comments(link_id):
     sql = """
-        SELECT c.content, c.created_at, u.username
+        SELECT c.content, c.created_at, u.id user_id, u.username
         FROM comments c
         JOIN users u ON c.user_id = u.id
         WHERE c.link_id = ?

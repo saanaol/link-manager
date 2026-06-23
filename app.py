@@ -253,9 +253,6 @@ def add_comment(link_id):
     if not link:
         abort(404)
 
-    if link["user_id"] == session["user_id"]:
-        abort(403)
-
     content = request.form["content"].strip()
 
     if not content:
