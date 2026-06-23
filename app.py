@@ -1,9 +1,11 @@
-import sqlite3
 from flask import Flask, redirect, render_template, request, session, abort, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-import db
 import config
 import secrets
+import users
+import links
+import categories
+import comments
 
 app = Flask(__name__)
 app.secret_key = config.secret_key
@@ -31,37 +33,15 @@ def check_csrf():
         abort(403)
 
 
-def get_link(link_id):
-    sql = """
-        SELECT l.id, l.title, l.url, l.notes, l.user_id, u.username
-        FROM links l
-        JOIN users u ON l.user_id = u.id
-        WHERE l.id = ?
-    """
-    result = db.query(sql, [link_id])
-    return result[0] if result else None
+def require_login():
+    if "user_id" not in session:
+        return redirect("/login")
+    return None
 
 
-def get_link_categories(link_id):
-    sql = """
-        SELECT c.name
-        FROM categories c
-        JOIN link_categories lc ON c.id = lc.category_id
-        WHERE lc.link_id = ?
-        ORDER BY c.name
-    """
-    return db.query(sql, [link_id])
-
-
-def get_link_comments(link_id):
-    sql = """
-        SELECT c.content, c.created_at, u.username
-        FROM comments c
-        JOIN users u ON c.user_id = u.id
-        WHERE c.link_id = ?
-        ORDER BY c.id DESC
-    """
-    return db.query(sql, [link_id])
+def require_link_owner(link):
+    if link["user_id"] != session["user_id"]:
+        abort(403)
 
 
 @app.route("/")
@@ -106,19 +86,13 @@ def register():
         flash("Passwords do not match")
         return render_template("register.html", filled = filled)
 
-    sql = "SELECT id FROM users WHERE lower(username) = lower(?)"
-    result = db.query(sql, [username])
-
-    if result:
+    if users.username_exists(username):
         flash("Username is already taken")
         return render_template("register.html", filled = filled)
 
     password_hash = generate_password_hash(password1)
 
-    try:
-        sql = "INSERT INTO users (username, password_hash) VALUES (?, ?)"
-        db.execute(sql, [username, password_hash])
-    except sqlite3.IntegrityError:
+    if not users.add_user(username, password_hash):
         flash("Username is already taken")
         return render_template("register.html", filled = filled)
 
@@ -136,23 +110,15 @@ def login():
 
     filled = {"username": username}
 
-    sql = """
-        SELECT id, username, password_hash
-        FROM users
-        WHERE lower(username) = lower(?)
-    """
-    result = db.query(sql, [username])
+    user = users.get_user_by_username(username)
 
-    if not result:
+    if not user:
         flash("Invalid username or password")
         return render_template("login.html", filled = filled)
 
-    user_id = result[0]["id"]
-    password_hash = result[0]["password_hash"]
-
-    if check_password_hash(password_hash, password):
-        session["user_id"] = user_id
-        session["username"] = result[0]["username"]
+    if check_password_hash(user["password_hash"], password):
+        session["user_id"] = user["id"]
+        session["username"] = user["username"]
         session["csrf_token"] = secrets.token_hex(16)
         return redirect("/links")
 
@@ -162,6 +128,10 @@ def login():
 
 @app.route("/logout", methods = ["POST"])
 def logout():
+    login_error = require_login()
+    if login_error:
+        return login_error
+
     check_csrf()
     session.clear()
     return redirect("/login")
@@ -169,25 +139,20 @@ def logout():
 
 @app.route("/links", methods = ["GET"])
 def show_links():
-    if "user_id" not in session:
-        return redirect("/login")
+    login_error = require_login()
+    if login_error:
+        return login_error
 
-    sql = """
-        SELECT l.id, l.title, l.url, l.user_id, u.username
-        FROM links l
-        JOIN users u ON l.user_id = u.id
-        ORDER BY l.id DESC
-    """
-    links = db.query(sql)
+    all_links = links.get_all_links()
 
     link_categories = {}
 
-    for link in links:
-        link_categories[link["id"]] = get_link_categories(link["id"])
+    for link in all_links:
+        link_categories[link["id"]] = categories.get_link_categories(link["id"])
 
     return render_template(
         "links.html",
-        links = links,
+        links = all_links,
         link_categories = link_categories,
         search_performed = False,
         query = "")
@@ -195,44 +160,47 @@ def show_links():
 
 @app.route("/links/new")
 def new_link():
-    if "user_id" not in session:
-        return redirect("/login")
+    login_error = require_login()
+    if login_error:
+        return login_error
 
-    sql = "SELECT id, name FROM categories ORDER BY name"
-    categories = db.query(sql)
+    all_categories = categories.get_all_categories()
 
-    return render_template("new_link.html", categories = categories)
+    return render_template("new_link.html", categories = all_categories)
 
 
 @app.route("/link/<int:link_id>")
 def show_link(link_id):
-    if "user_id" not in session:
-        return redirect("/login")
+    login_error = require_login()
+    if login_error:
+        return login_error
 
-    link = get_link(link_id)
+    link = links.get_link(link_id)
+
     if not link:
         abort(404)
 
-    categories = get_link_categories(link_id)
-    comments = get_link_comments(link_id)
+    link_categories = categories.get_link_categories(link_id)
+    link_comments = comments.get_link_comments(link_id)
 
     return render_template(
         "link.html",
         link = link,
-        categories = categories,
-        comments = comments)
+        categories = link_categories,
+        comments = link_comments)
 
 
 @app.route("/add_link", methods = ["POST"])
 def add_link():
-    if "user_id" not in session:
-        return redirect("/login")
+    login_error = require_login()
+    if login_error:
+        return login_error
 
     check_csrf()
 
     title = request.form["title"].strip()
     url = request.form["url"].strip()
-    notes = request.form["notes"].strip()
+    notes = request.form.get("notes", "").strip()
     user_id = session["user_id"]
 
     if not title:
@@ -259,40 +227,31 @@ def add_link():
         flash("URL must start with http:// or https://")
         return redirect("/links/new")
 
-    sql = """
-        INSERT INTO links (title, url, notes, user_id)
-        VALUES (?, ?, ?, ?)
-    """
-    db.execute(sql, [title, url, notes, user_id])
-
-    link_id = db.last_insert_id()
+    link_id = links.add_link(title, url, notes, user_id)
 
     category_ids = request.form.getlist("categories")
 
     for category_id in category_ids:
-        sql = """
-            INSERT INTO link_categories (link_id, category_id)
-            VALUES (?, ?)
-        """
-        db.execute(sql, [link_id, category_id])
+        if not categories.category_exists(category_id):
+            abort(403)
+
+        categories.add_link_category(link_id, category_id)
 
     return redirect("/link/" + str(link_id))
 
 
 @app.route("/add_comment/<int:link_id>", methods = ["POST"])
 def add_comment(link_id):
-    if "user_id" not in session:
-        return redirect("/login")
+    login_error = require_login()
+    if login_error:
+        return login_error
 
     check_csrf()
 
-    sql = "SELECT user_id FROM links WHERE id = ?"
-    result = db.query(sql, [link_id])
+    link = links.get_link(link_id)
 
-    if not result:
+    if not link:
         abort(404)
-
-    link = result[0]
 
     if link["user_id"] == session["user_id"]:
         abort(403)
@@ -307,27 +266,23 @@ def add_comment(link_id):
         flash("Additional information is too long")
         return redirect("/link/" + str(link_id))
 
-    sql = """
-        INSERT INTO comments (link_id, user_id, content)
-        VALUES (?, ?, ?)
-    """
-    db.execute(sql, [link_id, session["user_id"], content])
+    comments.add_comment(link_id, session["user_id"], content)
 
     return redirect("/link/" + str(link_id))
 
 
 @app.route("/edit_link/<int:link_id>", methods = ["GET", "POST"])
 def edit_link(link_id):
-    if "user_id" not in session:
-        return redirect("/login")
+    login_error = require_login()
+    if login_error:
+        return login_error
 
-    link = get_link(link_id)
+    link = links.get_link(link_id)
 
     if not link:
         abort(404)
 
-    if link["user_id"] != session["user_id"]:
-        abort(403)
+    require_link_owner(link)
 
     if request.method == "GET":
         return render_template("edit_link.html", link = link)
@@ -362,28 +317,23 @@ def edit_link(link_id):
         flash("URL must start with http:// or https://")
         return render_template("edit_link.html", link = link)
 
-    sql = """
-        UPDATE links
-        SET title = ?, url = ?, notes = ?
-        WHERE id = ?
-    """
-    db.execute(sql, [title, url, notes, link_id])
+    links.update_link(link_id, title, url, notes)
 
     return redirect("/link/" + str(link_id))
 
 
 @app.route("/remove_link/<int:link_id>", methods = ["GET", "POST"])
 def remove_link(link_id):
-    if "user_id" not in session:
-        return redirect("/login")
+    login_error = require_login()
+    if login_error:
+        return login_error
 
-    link = get_link(link_id)
+    link = links.get_link(link_id)
 
     if not link:
         abort(404)
 
-    if link["user_id"] != session["user_id"]:
-        abort(403)
+    require_link_owner(link)
 
     if request.method == "GET":
         return render_template("remove_link.html", link = link)
@@ -391,15 +341,9 @@ def remove_link(link_id):
     check_csrf()
 
     if "continue" in request.form:
-        sql = "DELETE FROM comments WHERE link_id = ?"
-        db.execute(sql, [link_id])
-
-        sql = "DELETE FROM link_categories WHERE link_id = ?"
-        db.execute(sql, [link_id])
-
-        sql = "DELETE FROM links WHERE id = ?"
-        db.execute(sql, [link_id])
-
+        comments.remove_link_comments(link_id)
+        categories.remove_link_categories(link_id)
+        links.remove_link(link_id)
         return redirect("/links")
 
     return redirect("/link/" + str(link_id))
@@ -407,32 +351,25 @@ def remove_link(link_id):
 
 @app.route("/search_links", methods = ["GET"])
 def search_links():
-    if "user_id" not in session:
-        return redirect("/login")
+    login_error = require_login()
+    if login_error:
+        return login_error
 
     query = request.args.get("query", "").strip()
 
     if not query:
         return redirect("/links")
 
-    sql = """
-        SELECT l.id, l.title, l.url, l.user_id, u.username
-        FROM links l
-        JOIN users u ON l.user_id = u.id
-        WHERE l.title LIKE ? OR l.url LIKE ? OR l.notes LIKE ?
-        ORDER BY l.id DESC
-    """
-    pattern = "%" + query + "%"
-    links = db.query(sql, [pattern, pattern, pattern])
+    found_links = links.search_links(query)
 
     link_categories = {}
 
-    for link in links:
-        link_categories[link["id"]] = get_link_categories(link["id"])
+    for link in found_links:
+        link_categories[link["id"]] = categories.get_link_categories(link["id"])
 
     return render_template(
         "links.html",
-        links = links,
+        links = found_links,
         link_categories = link_categories,
         search_performed = True,
         query = query)
@@ -440,27 +377,17 @@ def search_links():
 
 @app.route("/user/<int:user_id>")
 def user_page(user_id):
-    if "user_id" not in session:
-        return redirect("/login")
+    login_error = require_login()
+    if login_error:
+        return login_error
 
-    sql = "SELECT id, username FROM users WHERE id = ?"
-    result = db.query(sql, [user_id])
+    user = users.get_user(user_id)
 
-    if not result:
+    if not user:
         abort(404)
 
-    user = result[0]
-
-    sql = """
-        SELECT id, title, url
-        FROM links
-        WHERE user_id = ?
-        ORDER BY id DESC
-    """
-    user_links = db.query(sql, [user_id])
-
-    sql = "SELECT COUNT(*) AS count FROM links WHERE user_id = ?"
-    link_count = db.query(sql, [user_id])[0]["count"]
+    user_links = links.get_user_links(user_id)
+    link_count = links.count_user_links(user_id)
 
     return render_template(
         "user.html",
