@@ -2,81 +2,82 @@
 
 {% block content %}
 
-<h2>
-  {{ link.title }}:
-  &lt;<a href="{{ link.url }}">{{ link.url }}</a>&gt;
-</h2>
+<div class="link-card">
+  <h2>
+    {{ link.title }}:
+    &lt;<a href="{{ link.url }}">{{ link.url }}</a>&gt;
+  </h2>
 
-{% if link.notes %}
+  {% if link.notes %}
+    <p>
+      Notes:
+      {{ link.notes }}
+    </p>
+  {% endif %}
+
   <p>
-    Notes:
-    {{ link.notes }}
+    Added by:
+    <a href="/user/{{ link.user_id }}">{{ link.username }}</a>
   </p>
-{% endif %}
 
-<p>
-  Added by:
-  <a href="/user/{{ link.user_id }}">{{ link.username }}</a>
-</p>
-
-{% if categories %}
-  <p>
-    Categories:
-    {% for category in categories %}
-      {{ category.name }}{% if not loop.last %}, {% endif %}
-    {% endfor %}
-  </p>
-{% endif %}
+  {% if categories %}
+    <p>
+      Categories:
+      {% for category in categories %}
+        {{ category.name }}{% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </p>
+  {% endif %}
+</div>
 
 <h3>Additional information</h3>
 
 {% if comments %}
-  <ul>
-    {% for comment in comments %}
-      <li>
-		  {{ comment.content }} —
-		  <a href="/user/{{ comment.user_id }}">{{ comment.username }}</a>,
-		  {{ comment.created_at }}
-	  </li>
-    {% endfor %}
-  </ul>
+  {% for comment in comments %}
+    <div class="comment-card">
+      <p>
+        {{ comment.content }} —
+        <a href="/user/{{ comment.user_id }}">{{ comment.username }}</a>,
+        {{ comment.created_at }}
+      </p>
+    </div>
+  {% endfor %}
 {% else %}
   <p>No additional information yet.</p>
 {% endif %}
 
 {% if session.user_id %}
-  <form action="/add_comment/{{ link.id }}" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-section">
+    <form action="/add_comment/{{ link.id }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <p>
-      <label for="content">Add additional information</label>:<br>
-      <textarea
-        id="content"
-        name="content"
-        rows="4"
-        cols="50"
-        maxlength="500"
-        required
-      ></textarea>
-    </p>
+      <p>
+        <label for="content">Add additional information</label>:<br>
+        <textarea
+          id="content"
+          name="content"
+          rows="4"
+          cols="50"
+          maxlength="500"
+          required
+        ></textarea>
+      </p>
 
-    <p>
-      <input type="submit" value="Send">
-    </p>
-  </form>
+      <p>
+        <input type="submit" value="Send">
+      </p>
+    </form>
+  </div>
 {% endif %}
 
 {% if link.user_id == session.user_id %}
-  <p>
+  <div class="actions">
     <a href="/edit_link/{{ link.id }}">Edit link</a>
-  </p>
-
-  <p>
-    <a href="/remove_link/{{ link.id }}">Delete link</a>
-  </p>
+    <a class="danger-link" href="/remove_link/{{ link.id }}">Delete link</a>
+  </div>
 {% endif %}
 
-<p>
+<p class="back-link">
   <a href="/links">Back to links</a>
 </p>
 

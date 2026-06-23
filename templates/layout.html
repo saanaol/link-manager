@@ -3,46 +3,55 @@
 
 <head>
   <title>Link Manager</title>
+  <link rel="stylesheet" href="/static/main.css">
 </head>
 
 <body>
-  <h1>Link Manager</h1>
+  <div class="header">
+    <h1>Link Manager</h1>
+  </div>
 
-  <header>
-    {% if session.username %}
-      <p>
-        You are signed in as
-        <a href="/user/{{ session.user_id }}">{{ session.username }}</a>
+  <div class="nav">
+    <nav>
+      <ul>
+        {% if session.username %}
+          <li>
+            Signed in as
+            <a href="/user/{{ session.user_id }}">{{ session.username }}</a>
+          </li>
+          <li>
+            <a href="/links">Links</a>
+          </li>
+          <li>
+            <a href="/user/{{ session.user_id }}">My profile</a>
+          </li>
+          <li>
+            <form action="/logout" method="post" class="nav-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="submit" value="Sign out">
+            </form>
+          </li>
+        {% else %}
+          <li>
+            <a href="/login">Sign in</a>
+          </li>
+          <li>
+            <a href="/register">Register</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+
+  <div class="content">
+    {% for message in get_flashed_messages() %}
+      <p class="info">
+        {{ message }}
       </p>
+    {% endfor %}
 
-      <p>
-        <a href="/links">Links</a>
-        |
-        <a href="/user/{{ session.user_id }}">My profile</a>
-      </p>
-
-      <form action="/logout" method="post" style="display:inline;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="submit" value="Sign out">
-      </form>
-    {% else %}
-      <p>
-        <a href="/login">Sign in</a>
-        |
-        <a href="/register">Register</a>
-      </p>
-    {% endif %}
-  </header>
-
-  <hr>
-
-  {% for message in get_flashed_messages() %}
-    <p>
-      <strong>{{ message }}</strong>
-    </p>
-  {% endfor %}
-
-  {% block content %}{% endblock %}
+    {% block content %}{% endblock %}
+  </div>
 </body>
 
 </html>

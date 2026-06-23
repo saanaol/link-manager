@@ -4,29 +4,36 @@
 
 <h2>Links</h2>
 
-<p>
-  <a href="/links/new">Add new link</a>
+<p class="actions">
+  <a class="button-link" href="/links/new">Add new link</a>
 </p>
 
-<form action="/search_links" method="get">
-  <p>
-    <input
-      type="text"
-      name="query"
-      placeholder="Search for a link..."
-      value="{{ query or '' }}"
-      required
-    >
-    <input type="submit" value="Search">
-  </p>
-</form>
+<div class="form-section">
+  <form action="/search_links" method="get">
+    <p>
+      <label for="query">Search links</label>:<br>
+      <input
+        id="query"
+        type="text"
+        name="query"
+        placeholder="Search for a link..."
+        value="{{ query or '' }}"
+        required
+      >
+    </p>
+
+    <p>
+      <input type="submit" value="Search">
+    </p>
+  </form>
+</div>
 
 {% if search_performed %}
-  <p>
+  <p class="info">
     Search results for: <strong>{{ query }}</strong>
   </p>
 
-  <p>
+  <p class="actions">
     <a href="/links">Show all links</a>
   </p>
 {% endif %}
@@ -39,29 +46,27 @@
     <h3>All links:</h3>
   {% endif %}
 
-  <ul>
-    {% for link in links %}
-      <li>
-        <p>
-          <a href="/link/{{ link.id }}">{{ link.title }}</a>
-        </p>
+  {% for link in links %}
+    <div class="link-card">
+      <h3>
+        <a href="/link/{{ link.id }}">{{ link.title }}</a>
+      </h3>
 
-        <p>
-          Added by:
-          <a href="/user/{{ link.user_id }}">{{ link.username }}</a>
-        </p>
+      <p>
+        Added by:
+        <a href="/user/{{ link.user_id }}">{{ link.username }}</a>
+      </p>
 
-        {% if link_categories[link.id] %}
-          <p>
-            Categories:
-            {% for category in link_categories[link.id] %}
-              {{ category.name }}{% if not loop.last %}, {% endif %}
-            {% endfor %}
-          </p>
-        {% endif %}
-      </li>
-    {% endfor %}
-  </ul>
+      {% if link_categories[link.id] %}
+        <p>
+          Categories:
+          {% for category in link_categories[link.id] %}
+            {{ category.name }}{% if not loop.last %}, {% endif %}
+          {% endfor %}
+        </p>
+      {% endif %}
+    </div>
+  {% endfor %}
 
 {% else %}
 
