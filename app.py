@@ -8,6 +8,14 @@ import secrets
 app = Flask(__name__)
 app.secret_key = config.secret_key
 
+USERNAME_MIN_LENGTH = 3
+USERNAME_MAX_LENGTH = 16
+PASSWORD_MIN_LENGTH = 8
+TITLE_MAX_LENGTH = 100
+URL_MAX_LENGTH = 300
+NOTES_MAX_LENGTH = 1000
+COMMENT_MAX_LENGTH = 500
+
 
 def csrf_token():
     if "csrf_token" not in session:
@@ -73,6 +81,26 @@ def register():
     password2 = request.form["password2"]
 
     filled = {"username": username}
+
+    if not username:
+        flash("Username cannot be empty")
+        return render_template("register.html", filled = filled)
+
+    if len(username) < USERNAME_MIN_LENGTH:
+        flash("Username must be at least 3 characters long")
+        return render_template("register.html", filled = filled)
+
+    if len(username) > USERNAME_MAX_LENGTH:
+        flash("Username must be at most 16 characters long")
+        return render_template("register.html", filled = filled)
+
+    if not password1:
+        flash("Password cannot be empty")
+        return render_template("register.html", filled = filled)
+
+    if len(password1) < PASSWORD_MIN_LENGTH:
+        flash("Password must be at least 8 characters long")
+        return render_template("register.html", filled = filled)
 
     if password1 != password2:
         flash("Passwords do not match")
@@ -197,11 +225,29 @@ def add_link():
     notes = request.form["notes"].strip()
     user_id = session["user_id"]
 
-    if not title or not url:
-        abort(403)
+    if not title:
+        flash("Title cannot be empty")
+        return redirect("/links/new")
 
-    if len(title) > 100 or len(url) > 300 or len(notes) > 1000:
-        abort(403)
+    if not url:
+        flash("URL cannot be empty")
+        return redirect("/links/new")
+
+    if len(title) > TITLE_MAX_LENGTH:
+        flash("Title is too long")
+        return redirect("/links/new")
+
+    if len(url) > URL_MAX_LENGTH:
+        flash("URL is too long")
+        return redirect("/links/new")
+
+    if len(notes) > NOTES_MAX_LENGTH:
+        flash("Notes are too long")
+        return redirect("/links/new")
+
+    if not url.startswith(("http://", "https://")):
+        flash("URL must start with http:// or https://")
+        return redirect("/links/new")
 
     sql = """
         INSERT INTO links (title, url, notes, user_id)
@@ -221,7 +267,7 @@ def add_link():
         db.execute(sql, [link_id, category_id])
 
     return redirect("/link/" + str(link_id))
-
+    
 
 @app.route("/add_comment/<int:link_id>", methods=["POST"])
 def add_comment(link_id):
@@ -243,8 +289,13 @@ def add_comment(link_id):
 
     content = request.form["content"].strip()
 
-    if not content or len(content) > 500:
-        abort(403)
+    if not content:
+        flash("Additional information cannot be empty")
+        return redirect("/link/" + str(link_id))
+
+    if len(content) > COMMENT_MAX_LENGTH:
+        flash("Additional information is too long")
+        return redirect("/link/" + str(link_id))
 
     sql = """
         INSERT INTO comments (link_id, user_id, content)
@@ -269,7 +320,7 @@ def edit_link(link_id):
         abort(403)
 
     if request.method == "GET":
-        return render_template("edit_link.html", link=link)
+        return render_template("edit_link.html", link = link)
 
     check_csrf()
 
@@ -277,11 +328,29 @@ def edit_link(link_id):
     url = request.form["url"].strip()
     notes = request.form.get("notes", "").strip()
 
-    if not title or not url:
-        abort(403)
+    if not title:
+        flash("Title cannot be empty")
+        return render_template("edit_link.html", link = link)
 
-    if len(title) > 100 or len(url) > 300 or len(notes) > 1000:
-        abort(403)
+    if not url:
+        flash("URL cannot be empty")
+        return render_template("edit_link.html", link = link)
+
+    if len(title) > TITLE_MAX_LENGTH:
+        flash("Title is too long")
+        return render_template("edit_link.html", link = link)
+
+    if len(url) > URL_MAX_LENGTH:
+        flash("URL is too long")
+        return render_template("edit_link.html", link = link)
+
+    if len(notes) > NOTES_MAX_LENGTH:
+        flash("Notes are too long")
+        return render_template("edit_link.html", link = link)
+
+    if not url.startswith(("http://", "https://")):
+        flash("URL must start with http:// or https://")
+        return render_template("edit_link.html", link = link)
 
     sql = """
         UPDATE links
