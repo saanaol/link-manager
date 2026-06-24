@@ -15,6 +15,7 @@ USERNAME_MAX_LENGTH = 16
 PASSWORD_MIN_LENGTH = 8
 TITLE_MIN_LETTERS = 3
 TITLE_MAX_LENGTH = 100
+SEARCH_QUERY_MAX_LENGTH = TITLE_MAX_LENGTH
 URL_MAX_LENGTH = 300
 NOTES_MAX_LENGTH = 1000
 COMMENT_MAX_LENGTH = 500
@@ -54,7 +55,7 @@ def validate_link_title(title):
         return "Title cannot be empty"
 
     if len(title) > TITLE_MAX_LENGTH:
-        return "Title must be at most 40 characters long"
+        return "Title must be at most 100 characters long"
 
     if count_letters(title) < TITLE_MIN_LETTERS:
         return "Title must contain at least 3 letters"
@@ -365,6 +366,10 @@ def search_links():
         return login_error
 
     query = request.args.get("query", "").strip()
+
+    if len(query) > SEARCH_QUERY_MAX_LENGTH:
+        flash("Search query must be at most 100 characters long")
+        return redirect("/links")
 
     if not query:
         return redirect("/links")
