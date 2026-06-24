@@ -6,8 +6,16 @@ import users
 import links
 import categories
 import comments
+import markupsafe
 
 app = Flask(__name__)
+
+@app.template_filter()
+def show_lines(content):
+    content = str(markupsafe.escape(content))
+    content = content.replace("\n", "<br />")
+    return markupsafe.Markup(content)
+    
 app.secret_key = config.secret_key
 
 USERNAME_MIN_LENGTH = 2

@@ -136,3 +136,10 @@ input[type="submit"]:hover,
 .back-link {
   margin-top: 1.5em;
 }
+
+.link-url,
+.link-notes,
+.comment-content {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}

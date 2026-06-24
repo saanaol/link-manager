@@ -3,15 +3,16 @@
 {% block content %}
 
 <div class="link-card">
-  <h2>
-    {{ link.title }}:
-    &lt;<a href="{{ link.url }}">{{ link.url }}</a>&gt;
-  </h2>
+  <h2>{{ link.title }}</h2>
+
+  <p class="link-url">
+    <strong>Link:</strong>
+    <a href="{{ link.url }}">{{ link.url }}</a>
+  </p>
 
   {% if link.notes %}
-    <p>
-      Notes:
-      {{ link.notes }}
+    <p class="link-notes">
+      <strong>Notes:</strong> {{ link.notes | show_lines }}
     </p>
   {% endif %}
 
@@ -35,8 +36,12 @@
 {% if comments %}
   {% for comment in comments %}
     <div class="comment-card">
+      <p class="comment-content">
+        {{ comment.content | show_lines }}
+      </p>
+
       <p>
-        {{ comment.content }} —
+        Added by:
         <a href="/user/{{ comment.user_id }}">{{ comment.username }}</a>,
         {{ comment.created_at }}
       </p>
