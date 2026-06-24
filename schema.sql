@@ -12,6 +12,8 @@ CREATE TABLE links (
   url TEXT NOT NULL,
   notes TEXT,
   user_id INTEGER REFERENCES users
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT
 );
 
 CREATE TABLE categories (

@@ -18,7 +18,8 @@
 
   <p>
     Added by:
-    <a href="/user/{{ link.user_id }}">{{ link.username }}</a>
+    <a href="/user/{{ link.user_id }}">{{ link.username }}</a>,
+    {{ link.created_at }}{% if link.updated_at %}, edited {{ link.updated_at }}{% endif %}
   </p>
 
   {% if categories %}

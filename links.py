@@ -13,7 +13,8 @@ def get_all_links():
 
 def get_link(link_id):
     sql = """
-        SELECT l.id, l.title, l.url, l.notes, l.user_id, u.username
+        SELECT l.id, l.title, l.url, l.notes, l.user_id,
+               l.created_at, l.updated_at, u.username
         FROM links l
         JOIN users u ON l.user_id = u.id
         WHERE l.id = ?
@@ -24,8 +25,8 @@ def get_link(link_id):
 
 def add_link(title, url, notes, user_id):
     sql = """
-        INSERT INTO links (title, url, notes, user_id)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO links (title, url, notes, user_id, created_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
     """
     db.execute(sql, [title, url, notes, user_id])
     return db.last_insert_id()
@@ -34,7 +35,7 @@ def add_link(title, url, notes, user_id):
 def update_link(link_id, title, url, notes):
     sql = """
         UPDATE links
-        SET title = ?, url = ?, notes = ?
+        SET title = ?, url = ?, notes = ?, updated_at = datetime('now')
         WHERE id = ?
     """
     db.execute(sql, [title, url, notes, link_id])
