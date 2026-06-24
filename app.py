@@ -280,11 +280,11 @@ def add_comment(link_id):
     content = request.form["content"].strip()
 
     if not content:
-        flash("Additional information cannot be empty")
+        flash("Comment cannot be empty")
         return redirect("/link/" + str(link_id))
 
     if len(content) > COMMENT_MAX_LENGTH:
-        flash("Additional information is too long")
+        flash("Comment is too long")
         return redirect("/link/" + str(link_id))
 
     comments.add_comment(link_id, session["user_id"], content)

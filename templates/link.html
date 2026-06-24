@@ -31,7 +31,7 @@
   {% endif %}
 </div>
 
-<h3>Additional information</h3>
+<h3>Comments</h3>
 
 {% if comments %}
   {% for comment in comments %}
@@ -48,7 +48,7 @@
     </div>
   {% endfor %}
 {% else %}
-  <p>No additional information yet.</p>
+  <p>No comments yet.</p>
 {% endif %}
 
 {% if session.user_id %}
@@ -57,7 +57,7 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <p>
-        <label for="content">Add additional information</label>:<br>
+        <label for="content">Add comment</label>:<br>
         <textarea
           id="content"
           name="content"
