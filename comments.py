@@ -23,3 +23,8 @@ def add_comment(link_id, user_id, content):
 def remove_link_comments(link_id):
     sql = "DELETE FROM comments WHERE link_id = ?"
     db.execute(sql, [link_id])
+    
+    
+def count_user_comments(user_id):
+    sql = "SELECT COUNT(*) AS count FROM comments WHERE user_id = ?"
+    return db.query(sql, [user_id])[0]["count"]

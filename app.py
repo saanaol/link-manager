@@ -443,9 +443,11 @@ def user_page(user_id):
 
     user_links = links.get_user_links(user_id)
     link_count = links.count_user_links(user_id)
+    comment_count = comments.count_user_comments(user_id)
 
     return render_template(
         "user.html",
         user = user,
         user_links = user_links,
-        link_count = link_count)
+        link_count = link_count,
+        comment_count = comment_count)
