@@ -305,37 +305,60 @@ def edit_link(link_id):
 
     require_link_owner(link)
 
+    all_categories = categories.get_all_categories()
+    selected_category_ids = categories.get_link_category_ids(link_id)
+
     if request.method == "GET":
-        return render_template("edit_link.html", link = link)
+        return render_template(
+            "edit_link.html",
+            link = link,
+            categories = all_categories,
+            selected_category_ids = selected_category_ids)
 
     check_csrf()
 
     title = request.form["title"].strip()
     url = request.form["url"].strip()
     notes = request.form.get("notes", "").strip()
+    selected_category_ids = request.form.getlist("categories")
+
+    def render_edit_form():
+        return render_template(
+            "edit_link.html",
+            link = link,
+            categories = all_categories,
+            selected_category_ids = selected_category_ids)
 
     title_error = validate_link_title(title)
     if title_error:
         flash(title_error)
-        return render_template("edit_link.html", link=link)
+        return render_edit_form()
 
     if not url:
         flash("URL cannot be empty")
-        return render_template("edit_link.html", link = link)
+        return render_edit_form()
 
     if len(url) > URL_MAX_LENGTH:
         flash("URL is too long")
-        return render_template("edit_link.html", link = link)
+        return render_edit_form()
 
     if len(notes) > NOTES_MAX_LENGTH:
         flash("Notes are too long")
-        return render_template("edit_link.html", link = link)
+        return render_edit_form()
 
     if not url.startswith(("http://", "https://")):
         flash("URL must start with http:// or https://")
-        return render_template("edit_link.html", link = link)
+        return render_edit_form()
+
+    for category_id in selected_category_ids:
+        if not categories.category_exists(category_id):
+            abort(403)
 
     links.update_link(link_id, title, url, notes)
+
+    categories.remove_link_categories(link_id)
+    for category_id in selected_category_ids:
+        categories.add_link_category(link_id, category_id)
 
     return redirect("/link/" + str(link_id))
 

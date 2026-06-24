@@ -15,7 +15,7 @@
       name="title"
       value="{{ link.title }}"
       minlength="3"
-	  maxlength="100"
+      maxlength="100"
       required
     >
   </p>
@@ -44,12 +44,31 @@
     >{{ link.notes or "" }}</textarea>
   </p>
 
+  {% if categories %}
+    <fieldset>
+      <legend>Categories</legend>
+
+      {% for category in categories %}
+        <p>
+          <input
+            id="category-{{ category.id }}"
+            type="checkbox"
+            name="categories"
+            value="{{ category.id }}"
+            {% if category.id|string in selected_category_ids %}checked{% endif %}
+          >
+          <label for="category-{{ category.id }}">{{ category.name }}</label>
+        </p>
+      {% endfor %}
+    </fieldset>
+  {% endif %}
+
   <p>
     <input type="submit" value="Save changes">
   </p>
 </form>
 
-<p>
+<p class="back-link">
   <a href="/link/{{ link.id }}">Back to link</a>
 </p>
 

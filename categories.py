@@ -34,3 +34,9 @@ def add_link_category(link_id, category_id):
 def remove_link_categories(link_id):
     sql = "DELETE FROM link_categories WHERE link_id = ?"
     db.execute(sql, [link_id])
+    
+
+def get_link_category_ids(link_id):
+    sql = "SELECT category_id FROM link_categories WHERE link_id = ?"
+    result = db.query(sql, [link_id])
+    return [str(row["category_id"]) for row in result]
