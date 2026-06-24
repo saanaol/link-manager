@@ -27,6 +27,7 @@ SEARCH_QUERY_MAX_LENGTH = TITLE_MAX_LENGTH
 URL_MAX_LENGTH = 300
 NOTES_MAX_LENGTH = 1000
 COMMENT_MAX_LENGTH = 500
+COMMENT_MAX_LINES = 10
 
 
 def csrf_token():
@@ -69,6 +70,23 @@ def validate_link_title(title):
         return "Title must contain at least 3 letters"
 
     return None
+    
+
+def render_link_page(link_id, filled_comment=""):
+    link = links.get_link(link_id)
+
+    if not link:
+        abort(404)
+
+    link_categories = categories.get_link_categories(link_id)
+    link_comments = comments.get_link_comments(link_id)
+
+    return render_template(
+        "link.html",
+        link = link,
+        categories = link_categories,
+        comments = link_comments,
+        filled_comment = filled_comment)
 
 
 @app.route("/")
@@ -163,7 +181,7 @@ def logout():
     session.clear()
     return redirect("/login")
 
-
+    
 @app.route("/links", methods = ["GET"])
 def show_links():
     login_error = require_login()
@@ -202,20 +220,7 @@ def show_link(link_id):
     if login_error:
         return login_error
 
-    link = links.get_link(link_id)
-
-    if not link:
-        abort(404)
-
-    link_categories = categories.get_link_categories(link_id)
-    link_comments = comments.get_link_comments(link_id)
-
-    return render_template(
-        "link.html",
-        link = link,
-        categories = link_categories,
-        comments = link_comments)
-
+    return render_link_page(link_id)
 
 @app.route("/add_link", methods = ["POST"])
 def add_link():
@@ -264,7 +269,7 @@ def add_link():
     return redirect("/link/" + str(link_id))
 
 
-@app.route("/add_comment/<int:link_id>", methods = ["POST"])
+@app.route("/add_comment/<int:link_id>", methods=["POST"])
 def add_comment(link_id):
     login_error = require_login()
     if login_error:
@@ -277,17 +282,22 @@ def add_comment(link_id):
     if not link:
         abort(404)
 
-    content = request.form["content"].strip()
+    content = request.form["content"]
+    cleaned_content = content.strip()
 
-    if not content:
+    if not cleaned_content:
         flash("Comment cannot be empty")
-        return redirect("/link/" + str(link_id))
+        return render_link_page(link_id, content)
 
-    if len(content) > COMMENT_MAX_LENGTH:
+    if len(cleaned_content) > COMMENT_MAX_LENGTH:
         flash("Comment is too long")
-        return redirect("/link/" + str(link_id))
+        return render_link_page(link_id, content)
 
-    comments.add_comment(link_id, session["user_id"], content)
+    if cleaned_content.count("\n") + 1 > COMMENT_MAX_LINES:
+        flash("Comment can have at most 10 lines")
+        return render_link_page(link_id, content)
+
+    comments.add_comment(link_id, session["user_id"], cleaned_content)
 
     return redirect("/link/" + str(link_id))
 

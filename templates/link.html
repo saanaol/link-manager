@@ -31,6 +31,32 @@
   {% endif %}
 </div>
 
+{% if session.user_id %}
+  <div class="form-section">
+    <h3>Add comment</h3>
+
+    <form action="/add_comment/{{ link.id }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <p>
+        <label for="content">Comment</label>:<br>
+        <textarea
+          id="content"
+          name="content"
+          rows="4"
+          cols="50"
+          maxlength="500"
+          required
+        >{{ filled_comment or "" }}</textarea>
+      </p>
+
+      <p>
+        <input type="submit" value="Add comment">
+      </p>
+    </form>
+  </div>
+{% endif %}
+
 <h3>Comments</h3>
 
 {% if comments %}
@@ -49,30 +75,6 @@
   {% endfor %}
 {% else %}
   <p>No comments yet.</p>
-{% endif %}
-
-{% if session.user_id %}
-  <div class="form-section">
-    <form action="/add_comment/{{ link.id }}" method="post">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-      <p>
-        <label for="content">Add comment</label>:<br>
-        <textarea
-          id="content"
-          name="content"
-          rows="4"
-          cols="50"
-          maxlength="500"
-          required
-        ></textarea>
-      </p>
-
-      <p>
-        <input type="submit" value="Send">
-      </p>
-    </form>
-  </div>
 {% endif %}
 
 {% if link.user_id == session.user_id %}
