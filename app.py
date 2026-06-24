@@ -13,6 +13,7 @@ app.secret_key = config.secret_key
 USERNAME_MIN_LENGTH = 2
 USERNAME_MAX_LENGTH = 16
 PASSWORD_MIN_LENGTH = 8
+TITLE_MIN_LETTERS = 3
 TITLE_MAX_LENGTH = 100
 URL_MAX_LENGTH = 300
 NOTES_MAX_LENGTH = 1000
@@ -42,6 +43,23 @@ def require_login():
 def require_link_owner(link):
     if link["user_id"] != session["user_id"]:
         abort(403)
+        
+
+def count_letters(text):
+    return sum(1 for char in text if char.isalpha())
+
+
+def validate_link_title(title):
+    if not title:
+        return "Title cannot be empty"
+
+    if len(title) > TITLE_MAX_LENGTH:
+        return "Title must be at most 40 characters long"
+
+    if count_letters(title) < TITLE_MIN_LETTERS:
+        return "Title must contain at least 3 letters"
+
+    return None
 
 
 @app.route("/")
@@ -203,16 +221,13 @@ def add_link():
     notes = request.form.get("notes", "").strip()
     user_id = session["user_id"]
 
-    if not title:
-        flash("Title cannot be empty")
-        return redirect("/links/new")
+    title_error = validate_link_title(title)
+    if title_error:
+        flash(title_error)
+        return render_template("edit_link.html", link=link)
 
     if not url:
         flash("URL cannot be empty")
-        return redirect("/links/new")
-
-    if len(title) > TITLE_MAX_LENGTH:
-        flash("Title is too long")
         return redirect("/links/new")
 
     if len(url) > URL_MAX_LENGTH:
@@ -290,16 +305,13 @@ def edit_link(link_id):
     url = request.form["url"].strip()
     notes = request.form.get("notes", "").strip()
 
-    if not title:
-        flash("Title cannot be empty")
-        return render_template("edit_link.html", link = link)
+    title_error = validate_link_title(title)
+    if title_error:
+        flash(title_error)
+        return render_template("edit_link.html", link=link)
 
     if not url:
         flash("URL cannot be empty")
-        return render_template("edit_link.html", link = link)
-
-    if len(title) > TITLE_MAX_LENGTH:
-        flash("Title is too long")
         return render_template("edit_link.html", link = link)
 
     if len(url) > URL_MAX_LENGTH:
