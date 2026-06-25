@@ -31,6 +31,7 @@ COMMENT_MAX_LENGTH = 500
 COMMENT_MAX_LINES = 10
 PAGE_SIZE = 10
 COMMENT_PAGE_SIZE = 5
+USER_LINK_PAGE_SIZE = 10
 
 
 def csrf_token():
@@ -485,13 +486,27 @@ def user_page(user_id):
     if not user:
         abort(404)
 
-    user_links = links.get_user_links(user_id)
+    page = request.args.get("page", 1, type=int)
+
+    if page < 1:
+        return redirect("/user/" + str(user_id))
+
     link_count = links.count_user_links(user_id)
+    page_count = math.ceil(link_count / USER_LINK_PAGE_SIZE)
+    page_count = max(page_count, 1)
+
+    if page > page_count:
+        return redirect("/user/" + str(user_id) + "?page=" + str(page_count))
+
+    user_links = links.get_user_links(user_id, page, USER_LINK_PAGE_SIZE)
     comment_count = comments.count_user_comments(user_id)
 
     return render_template(
         "user.html",
-        user = user,
-        user_links = user_links,
-        link_count = link_count,
-        comment_count = comment_count)
+        user=user,
+        user_id=user_id,
+        user_links=user_links,
+        link_count=link_count,
+        comment_count=comment_count,
+        page=page,
+        page_count=page_count)

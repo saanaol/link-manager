@@ -77,14 +77,18 @@ def search_links(query):
     return db.query(sql, [pattern, pattern, pattern])
 
 
-def get_user_links(user_id):
+def get_user_links(user_id, page, page_size):
     sql = """
         SELECT id, title, url
         FROM links
         WHERE user_id = ?
         ORDER BY id DESC
+        LIMIT ? OFFSET ?
     """
-    return db.query(sql, [user_id])
+    limit = page_size
+    offset = page_size * (page - 1)
+
+    return db.query(sql, [user_id, limit, offset])
 
 
 def count_user_links(user_id):
