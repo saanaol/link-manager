@@ -7,6 +7,7 @@ import links
 import categories
 import comments
 import markupsafe
+import math
 
 app = Flask(__name__)
 
@@ -28,6 +29,7 @@ URL_MAX_LENGTH = 300
 NOTES_MAX_LENGTH = 1000
 COMMENT_MAX_LENGTH = 500
 COMMENT_MAX_LINES = 10
+PAGE_SIZE = 10
 
 
 def csrf_token():
@@ -180,27 +182,39 @@ def logout():
     check_csrf()
     session.clear()
     return redirect("/login")
-
-    
-@app.route("/links", methods = ["GET"])
-def show_links():
+        
+        
+@app.route("/links", methods=["GET"])
+@app.route("/links/<int:page>", methods=["GET"])
+def show_links(page=1):
     login_error = require_login()
     if login_error:
         return login_error
 
-    all_links = links.get_all_links()
+    link_count = links.count_links()
+    page_count = math.ceil(link_count / PAGE_SIZE)
+    page_count = max(page_count, 1)
+
+    if page < 1:
+        return redirect("/links")
+
+    if page > page_count:
+        return redirect("/links/" + str(page_count))
+
+    page_links = links.get_links(page, PAGE_SIZE)
 
     link_categories = {}
-
-    for link in all_links:
+    for link in page_links:
         link_categories[link["id"]] = categories.get_link_categories(link["id"])
 
     return render_template(
         "links.html",
-        links = all_links,
-        link_categories = link_categories,
-        search_performed = False,
-        query = "")
+        links=page_links,
+        link_categories=link_categories,
+        search_performed=False,
+        query="",
+        page=page,
+        page_count=page_count)
 
 
 @app.route("/links/new")

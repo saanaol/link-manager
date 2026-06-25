@@ -1,6 +1,25 @@
 import db
 
 
+def count_links():
+    sql = "SELECT COUNT(*) AS count FROM links"
+    return db.query(sql)[0]["count"]
+
+
+def get_links(page, page_size):
+    sql = """
+        SELECT l.id, l.title, l.url, l.user_id, u.username
+        FROM links l
+        JOIN users u ON l.user_id = u.id
+        ORDER BY l.id DESC
+        LIMIT ? OFFSET ?
+    """
+    limit = page_size
+    offset = page_size * (page - 1)
+
+    return db.query(sql, [limit, offset])
+
+
 def get_all_links():
     sql = """
         SELECT l.id, l.title, l.url, l.user_id, u.username
