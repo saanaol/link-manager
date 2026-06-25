@@ -4,7 +4,7 @@ CREATE TABLE users (
     password_hash TEXT
 );
 
-CREATE UNIQUE INDEX idx_users_username_lower ON users(lower(username));
+CREATE UNIQUE INDEX index_users_username_lower ON users(lower(username));
 
 CREATE TABLE links (
     id INTEGER PRIMARY KEY,
@@ -34,3 +34,11 @@ CREATE TABLE comments (
     content TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX index_links_user_id ON links(user_id);
+
+CREATE INDEX index_comments_link_id ON comments(link_id);
+CREATE INDEX index_comments_user_id ON comments(user_id);
+
+CREATE INDEX index_link_categories_link_id ON link_categories(link_id);
+CREATE INDEX index_link_categories_category_id ON link_categories(category_id);
