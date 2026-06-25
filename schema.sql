@@ -7,13 +7,13 @@ CREATE TABLE users (
 CREATE UNIQUE INDEX idx_users_username_lower ON users(lower(username));
 
 CREATE TABLE links (
-  id INTEGER PRIMARY KEY,
-  title TEXT NOT NULL,
-  url TEXT NOT NULL,
-  notes TEXT,
-  user_id INTEGER REFERENCES users
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    url TEXT NOT NULL,
+    notes TEXT,
+    user_id INTEGER REFERENCES users,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT
 );
 
 CREATE TABLE categories (
@@ -27,13 +27,6 @@ CREATE TABLE link_categories (
     PRIMARY KEY (link_id, category_id)
 );
 
-INSERT INTO categories (name) VALUES
-    ('Programming'),
-    ('School'),
-    ('Work'),
-    ('Article'),
-    ('Other');
-    
 CREATE TABLE comments (
     id INTEGER PRIMARY KEY,
     link_id INTEGER REFERENCES links ON DELETE CASCADE,
@@ -41,4 +34,3 @@ CREATE TABLE comments (
     content TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
-    
