@@ -74,6 +74,24 @@
       </p>
     </div>
   {% endfor %}
+
+  {% if page_count > 1 %}
+    <p class="pagination">
+      {% if page > 1 %}
+        <a href="/link/{{ link.id }}?page={{ page - 1 }}">
+          &lt;&lt; Previous
+        </a>
+      {% endif %}
+
+      Page {{ page }}/{{ page_count }}
+
+      {% if page < page_count %}
+        <a href="/link/{{ link.id }}?page={{ page + 1 }}">
+          Next &gt;&gt;
+        </a>
+      {% endif %}
+    </p>
+  {% endif %}
 {% else %}
   <p>No comments yet.</p>
 {% endif %}

@@ -30,6 +30,7 @@ NOTES_MAX_LENGTH = 1000
 COMMENT_MAX_LENGTH = 500
 COMMENT_MAX_LINES = 10
 PAGE_SIZE = 10
+COMMENT_PAGE_SIZE = 5
 
 
 def csrf_token():
@@ -234,7 +235,36 @@ def show_link(link_id):
     if login_error:
         return login_error
 
-    return render_link_page(link_id)
+    link = links.get_link(link_id)
+
+    if not link:
+        abort(404)
+
+    page = request.args.get("page", 1, type=int)
+
+    if page < 1:
+        return redirect("/link/" + str(link_id))
+
+    comment_count = comments.count_link_comments(link_id)
+    page_count = math.ceil(comment_count / COMMENT_PAGE_SIZE)
+    page_count = max(page_count, 1)
+
+    if page > page_count:
+        return redirect("/link/" + str(link_id) + "?page=" + str(page_count))
+
+    link_categories = categories.get_link_categories(link_id)
+    link_comments = comments.get_link_comments(
+        link_id,
+        page,
+        COMMENT_PAGE_SIZE)
+
+    return render_template(
+        "link.html",
+        link=link,
+        categories=link_categories,
+        comments=link_comments,
+        page=page,
+        page_count=page_count)
 
 @app.route("/add_link", methods = ["POST"])
 def add_link():
