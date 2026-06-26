@@ -249,10 +249,8 @@ def show_links(page=1):
         return redirect("/links/" + str(page_count))
 
     page_links = links.get_links(page, PAGE_SIZE)
-
-    link_categories = {}
-    for link in page_links:
-        link_categories[link["id"]] = categories.get_link_categories(link["id"])
+    link_ids = [link["id"] for link in page_links]
+    link_categories = categories.get_categories_for_links(link_ids)
 
     return render_template(
         "links.html",
@@ -506,17 +504,17 @@ def search_links():
         return redirect("/links")
 
     found_links = links.search_links(query)
-
-    link_categories = {}
-    for link in found_links:
-        link_categories[link["id"]] = categories.get_link_categories(link["id"])
+    link_ids = [link["id"] for link in found_links]
+    link_categories = categories.get_categories_for_links(link_ids)
 
     return render_template(
         "links.html",
         links=found_links,
         link_categories=link_categories,
         search_performed=True,
-        query=query)
+        query=query,
+        page=1,
+        page_count=1)
 
 
 @app.route("/user/<int:user_id>")
