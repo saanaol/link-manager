@@ -1,4 +1,5 @@
 import math
+import re
 import secrets
 
 import markupsafe
@@ -65,6 +66,10 @@ def require_link_owner(link):
 
 def count_letters(text):
     return sum(1 for char in text if char.isalpha())
+    
+
+def is_valid_username(username):
+    return re.fullmatch(r"[A-Za-z0-9_-]+", username) is not None
 
 
 def validate_link_title(title):
@@ -137,6 +142,8 @@ def register():
     if request.method == "GET":
         return render_template("register.html", filled={})
 
+    check_csrf()
+
     username = request.form["username"].strip()
     password1 = request.form["password1"]
     password2 = request.form["password2"]
@@ -153,6 +160,10 @@ def register():
 
     if len(username) > USERNAME_MAX_LENGTH:
         flash("Username must be at most 16 characters long")
+        return render_template("register.html", filled=filled)
+        
+    if not is_valid_username(username):
+        flash("Username can contain only letters, numbers, underscores and hyphens")
         return render_template("register.html", filled=filled)
 
     if not password1:
@@ -185,6 +196,8 @@ def register():
 def login():
     if request.method == "GET":
         return render_template("login.html", filled={})
+
+    check_csrf()
 
     username = request.form["username"].strip()
     password = request.form["password"]
