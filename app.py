@@ -1,5 +1,4 @@
 import math
-import re
 import secrets
 
 import markupsafe
@@ -11,22 +10,13 @@ import comments
 import config
 import links
 import users
+import validators
 
 
 app = Flask(__name__)
 app.secret_key = config.secret_key
 
 
-USERNAME_MIN_LENGTH = 2
-USERNAME_MAX_LENGTH = 16
-PASSWORD_MIN_LENGTH = 8
-TITLE_MIN_LETTERS = 3
-TITLE_MAX_LENGTH = 100
-SEARCH_QUERY_MAX_LENGTH = TITLE_MAX_LENGTH
-URL_MAX_LENGTH = 300
-NOTES_MAX_LENGTH = 1000
-COMMENT_MAX_LENGTH = 500
-COMMENT_MAX_LINES = 10
 PAGE_SIZE = 10
 COMMENT_PAGE_SIZE = 5
 USER_LINK_PAGE_SIZE = 10
@@ -62,27 +52,6 @@ def require_login():
 def require_link_owner(link):
     if link["user_id"] != session["user_id"]:
         abort(403)
-
-
-def count_letters(text):
-    return sum(1 for char in text if char.isalpha())
-    
-
-def is_valid_username(username):
-    return re.fullmatch(r"[A-Za-z0-9_-]+", username) is not None
-
-
-def validate_link_title(title):
-    if not title:
-        return "Title cannot be empty"
-
-    if len(title) > TITLE_MAX_LENGTH:
-        return "Title must be at most 100 characters long"
-
-    if count_letters(title) < TITLE_MIN_LETTERS:
-        return "Title must contain at least 3 letters"
-
-    return None
 
 
 def render_new_link_form(title="", url="", notes="", selected_category_ids=None):
@@ -150,28 +119,14 @@ def register():
 
     filled = {"username": username}
 
-    if not username:
-        flash("Username cannot be empty")
+    username_error = validators.validate_username(username)
+    if username_error:
+        flash(username_error)
         return render_template("register.html", filled=filled)
 
-    if len(username) < USERNAME_MIN_LENGTH:
-        flash("Username must be at least 2 characters long")
-        return render_template("register.html", filled=filled)
-
-    if len(username) > USERNAME_MAX_LENGTH:
-        flash("Username must be at most 16 characters long")
-        return render_template("register.html", filled=filled)
-        
-    if not is_valid_username(username):
-        flash("Username can contain only letters, numbers, underscores and hyphens")
-        return render_template("register.html", filled=filled)
-
-    if not password1:
-        flash("Password cannot be empty")
-        return render_template("register.html", filled=filled)
-
-    if len(password1) < PASSWORD_MIN_LENGTH:
-        flash("Password must be at least 8 characters long")
+    password_error = validators.validate_password(password1)
+    if password_error:
+        flash(password_error)
         return render_template("register.html", filled=filled)
 
     if password1 != password2:
@@ -324,25 +279,19 @@ def add_link():
     selected_category_ids = request.form.getlist("categories")
     user_id = session["user_id"]
 
-    title_error = validate_link_title(title)
+    title_error = validators.validate_link_title(title)
     if title_error:
         flash(title_error)
         return render_new_link_form(title, url, notes, selected_category_ids)
 
-    if not url:
-        flash("URL cannot be empty")
+    url_error = validators.validate_url(url)
+    if url_error:
+        flash(url_error)
         return render_new_link_form(title, url, notes, selected_category_ids)
 
-    if len(url) > URL_MAX_LENGTH:
-        flash("URL is too long")
-        return render_new_link_form(title, url, notes, selected_category_ids)
-
-    if len(notes) > NOTES_MAX_LENGTH:
-        flash("Notes are too long")
-        return render_new_link_form(title, url, notes, selected_category_ids)
-
-    if not url.startswith(("http://", "https://")):
-        flash("URL must start with http:// or https://")
+    notes_error = validators.validate_notes(notes)
+    if notes_error:
+        flash(notes_error)
         return render_new_link_form(title, url, notes, selected_category_ids)
 
     for category_id in selected_category_ids:
@@ -373,16 +322,9 @@ def add_comment(link_id):
     content = request.form["content"]
     cleaned_content = content.strip()
 
-    if not cleaned_content:
-        flash("Comment cannot be empty")
-        return render_link_page(link_id, content)
-
-    if len(cleaned_content) > COMMENT_MAX_LENGTH:
-        flash("Comment is too long")
-        return render_link_page(link_id, content)
-
-    if cleaned_content.count("\n") + 1 > COMMENT_MAX_LINES:
-        flash("Comment can have at most 10 lines")
+    comment_error = validators.validate_comment(cleaned_content)
+    if comment_error:
+        flash(comment_error)
         return render_link_page(link_id, content)
 
     comments.add_comment(link_id, session["user_id"], cleaned_content)
@@ -427,25 +369,19 @@ def edit_link(link_id):
             categories=all_categories,
             selected_category_ids=selected_category_ids)
 
-    title_error = validate_link_title(title)
+    title_error = validators.validate_link_title(title)
     if title_error:
         flash(title_error)
         return render_edit_form()
 
-    if not url:
-        flash("URL cannot be empty")
+    url_error = validators.validate_url(url)
+    if url_error:
+        flash(url_error)
         return render_edit_form()
 
-    if len(url) > URL_MAX_LENGTH:
-        flash("URL is too long")
-        return render_edit_form()
-
-    if len(notes) > NOTES_MAX_LENGTH:
-        flash("Notes are too long")
-        return render_edit_form()
-
-    if not url.startswith(("http://", "https://")):
-        flash("URL must start with http:// or https://")
+    notes_error = validators.validate_notes(notes)
+    if notes_error:
+        flash(notes_error)
         return render_edit_form()
 
     for category_id in selected_category_ids:
@@ -497,8 +433,9 @@ def search_links():
     query = request.args.get("query", "").strip()
     page = request.args.get("page", 1, type=int)
 
-    if len(query) > SEARCH_QUERY_MAX_LENGTH:
-        flash("Search query must be at most 100 characters long")
+    query_error = validators.validate_search_query(query)
+    if query_error:
+        flash(query_error)
         return redirect("/links")
 
     if not query:
@@ -512,7 +449,8 @@ def search_links():
     page_count = max(page_count, 1)
 
     if page > page_count:
-        return redirect("/search_links?query=" + query + "&page=" + str(page_count))
+        return redirect(
+            "/search_links?query=" + query + "&page=" + str(page_count))
 
     found_links = links.search_links(query, page, PAGE_SIZE)
     link_ids = [link["id"] for link in found_links]
