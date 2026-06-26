@@ -1,4 +1,3 @@
-import math
 import secrets
 
 import markupsafe
@@ -9,6 +8,7 @@ import categories
 import comments
 import config
 import links
+import pagination
 import users
 import validators
 
@@ -54,6 +54,11 @@ def require_link_owner(link):
         abort(403)
 
 
+def get_link_category_map(link_list):
+    link_ids = [link["id"] for link in link_list]
+    return categories.get_categories_for_links(link_ids)
+
+
 def render_new_link_form(title="", url="", notes="", selected_category_ids=None):
     if selected_category_ids is None:
         selected_category_ids = []
@@ -79,8 +84,7 @@ def render_link_page(link_id, filled_comment=""):
 
     page = 1
     comment_count = comments.count_link_comments(link_id)
-    page_count = math.ceil(comment_count / COMMENT_PAGE_SIZE)
-    page_count = max(page_count, 1)
+    page_count = pagination.get_page_count(comment_count, COMMENT_PAGE_SIZE)
 
     link_categories = categories.get_link_categories(link_id)
     link_comments = comments.get_link_comments(
@@ -194,8 +198,7 @@ def show_links(page=1):
         return login_error
 
     link_count = links.count_links()
-    page_count = math.ceil(link_count / PAGE_SIZE)
-    page_count = max(page_count, 1)
+    page_count = pagination.get_page_count(link_count, PAGE_SIZE)
 
     if page < 1:
         return redirect("/links")
@@ -204,8 +207,7 @@ def show_links(page=1):
         return redirect("/links/" + str(page_count))
 
     page_links = links.get_links(page, PAGE_SIZE)
-    link_ids = [link["id"] for link in page_links]
-    link_categories = categories.get_categories_for_links(link_ids)
+    link_categories = get_link_category_map(page_links)
 
     return render_template(
         "links.html",
@@ -243,8 +245,7 @@ def show_link(link_id):
         return redirect("/link/" + str(link_id))
 
     comment_count = comments.count_link_comments(link_id)
-    page_count = math.ceil(comment_count / COMMENT_PAGE_SIZE)
-    page_count = max(page_count, 1)
+    page_count = pagination.get_page_count(comment_count, COMMENT_PAGE_SIZE)
 
     if page > page_count:
         return redirect("/link/" + str(link_id) + "?page=" + str(page_count))
@@ -445,16 +446,14 @@ def search_links():
         return redirect("/search_links?query=" + query)
 
     link_count = links.count_search_links(query)
-    page_count = math.ceil(link_count / PAGE_SIZE)
-    page_count = max(page_count, 1)
+    page_count = pagination.get_page_count(link_count, PAGE_SIZE)
 
     if page > page_count:
         return redirect(
             "/search_links?query=" + query + "&page=" + str(page_count))
 
     found_links = links.search_links(query, page, PAGE_SIZE)
-    link_ids = [link["id"] for link in found_links]
-    link_categories = categories.get_categories_for_links(link_ids)
+    link_categories = get_link_category_map(found_links)
 
     return render_template(
         "links.html",
@@ -483,8 +482,7 @@ def user_page(user_id):
         return redirect("/user/" + str(user_id))
 
     link_count = links.count_user_links(user_id)
-    page_count = math.ceil(link_count / USER_LINK_PAGE_SIZE)
-    page_count = max(page_count, 1)
+    page_count = pagination.get_page_count(link_count, USER_LINK_PAGE_SIZE)
 
     if page > page_count:
         return redirect("/user/" + str(user_id) + "?page=" + str(page_count))
