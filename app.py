@@ -1,23 +1,20 @@
-from flask import Flask, redirect, render_template, request, session, abort, flash
-from werkzeug.security import generate_password_hash, check_password_hash
-import config
+import math
 import secrets
-import users
-import links
+
+import markupsafe
+from flask import Flask, abort, flash, redirect, render_template, request, session
+from werkzeug.security import check_password_hash, generate_password_hash
+
 import categories
 import comments
-import markupsafe
-import math
+import config
+import links
+import users
+
 
 app = Flask(__name__)
-
-@app.template_filter()
-def show_lines(content):
-    content = str(markupsafe.escape(content))
-    content = content.replace("\n", "<br />")
-    return markupsafe.Markup(content)
-    
 app.secret_key = config.secret_key
+
 
 USERNAME_MIN_LENGTH = 2
 USERNAME_MAX_LENGTH = 16
@@ -32,6 +29,13 @@ COMMENT_MAX_LINES = 10
 PAGE_SIZE = 10
 COMMENT_PAGE_SIZE = 5
 USER_LINK_PAGE_SIZE = 10
+
+
+@app.template_filter()
+def show_lines(content):
+    content = str(markupsafe.escape(content))
+    content = content.replace("\n", "<br />")
+    return markupsafe.Markup(content)
 
 
 def csrf_token():
@@ -57,7 +61,7 @@ def require_login():
 def require_link_owner(link):
     if link["user_id"] != session["user_id"]:
         abort(403)
-        
+
 
 def count_letters(text):
     return sum(1 for char in text if char.isalpha())
@@ -74,7 +78,24 @@ def validate_link_title(title):
         return "Title must contain at least 3 letters"
 
     return None
-    
+
+
+def render_new_link_form(title="", url="", notes="", selected_category_ids=None):
+    if selected_category_ids is None:
+        selected_category_ids = []
+
+    all_categories = categories.get_all_categories()
+
+    return render_template(
+        "new_link.html",
+        categories=all_categories,
+        filled={
+            "title": title,
+            "url": url,
+            "notes": notes,
+        },
+        selected_category_ids=selected_category_ids)
+
 
 def render_link_page(link_id, filled_comment=""):
     link = links.get_link(link_id)
@@ -82,28 +103,39 @@ def render_link_page(link_id, filled_comment=""):
     if not link:
         abort(404)
 
+    page = 1
+    comment_count = comments.count_link_comments(link_id)
+    page_count = math.ceil(comment_count / COMMENT_PAGE_SIZE)
+    page_count = max(page_count, 1)
+
     link_categories = categories.get_link_categories(link_id)
-    link_comments = comments.get_link_comments(link_id)
+    link_comments = comments.get_link_comments(
+        link_id,
+        page,
+        COMMENT_PAGE_SIZE)
 
     return render_template(
         "link.html",
-        link = link,
-        categories = link_categories,
-        comments = link_comments,
-        filled_comment = filled_comment)
+        link=link,
+        categories=link_categories,
+        comments=link_comments,
+        filled_comment=filled_comment,
+        page=page,
+        page_count=page_count)
 
 
 @app.route("/")
 def index():
     if "user_id" in session:
         return redirect("/links")
+
     return redirect("/login")
 
 
-@app.route("/register", methods = ["GET", "POST"])
+@app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "GET":
-        return render_template("register.html", filled = {})
+        return render_template("register.html", filled={})
 
     username = request.form["username"].strip()
     password1 = request.form["password1"]
@@ -113,46 +145,46 @@ def register():
 
     if not username:
         flash("Username cannot be empty")
-        return render_template("register.html", filled = filled)
+        return render_template("register.html", filled=filled)
 
     if len(username) < USERNAME_MIN_LENGTH:
         flash("Username must be at least 2 characters long")
-        return render_template("register.html", filled = filled)
+        return render_template("register.html", filled=filled)
 
     if len(username) > USERNAME_MAX_LENGTH:
         flash("Username must be at most 16 characters long")
-        return render_template("register.html", filled = filled)
+        return render_template("register.html", filled=filled)
 
     if not password1:
         flash("Password cannot be empty")
-        return render_template("register.html", filled = filled)
+        return render_template("register.html", filled=filled)
 
     if len(password1) < PASSWORD_MIN_LENGTH:
         flash("Password must be at least 8 characters long")
-        return render_template("register.html", filled = filled)
+        return render_template("register.html", filled=filled)
 
     if password1 != password2:
         flash("Passwords do not match")
-        return render_template("register.html", filled = filled)
+        return render_template("register.html", filled=filled)
 
     if users.username_exists(username):
         flash("Username is already taken")
-        return render_template("register.html", filled = filled)
+        return render_template("register.html", filled=filled)
 
     password_hash = generate_password_hash(password1)
 
     if not users.add_user(username, password_hash):
         flash("Username is already taken")
-        return render_template("register.html", filled = filled)
+        return render_template("register.html", filled=filled)
 
     flash("Account created. You can now sign in.")
     return redirect("/login")
 
 
-@app.route("/login", methods = ["POST", "GET"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "GET":
-        return render_template("login.html", filled = {})
+        return render_template("login.html", filled={})
 
     username = request.form["username"].strip()
     password = request.form["password"]
@@ -163,7 +195,7 @@ def login():
 
     if not user:
         flash("Invalid username or password")
-        return render_template("login.html", filled = filled)
+        return render_template("login.html", filled=filled)
 
     if check_password_hash(user["password_hash"], password):
         session["user_id"] = user["id"]
@@ -172,10 +204,10 @@ def login():
         return redirect("/links")
 
     flash("Invalid username or password")
-    return render_template("login.html", filled = filled)
+    return render_template("login.html", filled=filled)
 
 
-@app.route("/logout", methods = ["POST"])
+@app.route("/logout", methods=["POST"])
 def logout():
     login_error = require_login()
     if login_error:
@@ -184,8 +216,8 @@ def logout():
     check_csrf()
     session.clear()
     return redirect("/login")
-        
-        
+
+
 @app.route("/links", methods=["GET"])
 @app.route("/links/<int:page>", methods=["GET"])
 def show_links(page=1):
@@ -225,9 +257,7 @@ def new_link():
     if login_error:
         return login_error
 
-    all_categories = categories.get_all_categories()
-
-    return render_template("new_link.html", categories = all_categories)
+    return render_new_link_form()
 
 
 @app.route("/link/<int:link_id>")
@@ -265,9 +295,11 @@ def show_link(link_id):
         categories=link_categories,
         comments=link_comments,
         page=page,
-        page_count=page_count)
+        page_count=page_count,
+        filled_comment="")
 
-@app.route("/add_link", methods = ["POST"])
+
+@app.route("/add_link", methods=["POST"])
 def add_link():
     login_error = require_login()
     if login_error:
@@ -278,37 +310,37 @@ def add_link():
     title = request.form["title"].strip()
     url = request.form["url"].strip()
     notes = request.form.get("notes", "").strip()
+    selected_category_ids = request.form.getlist("categories")
     user_id = session["user_id"]
 
     title_error = validate_link_title(title)
     if title_error:
         flash(title_error)
-        return render_template("edit_link.html", link=link)
+        return render_new_link_form(title, url, notes, selected_category_ids)
 
     if not url:
         flash("URL cannot be empty")
-        return redirect("/links/new")
+        return render_new_link_form(title, url, notes, selected_category_ids)
 
     if len(url) > URL_MAX_LENGTH:
         flash("URL is too long")
-        return redirect("/links/new")
+        return render_new_link_form(title, url, notes, selected_category_ids)
 
     if len(notes) > NOTES_MAX_LENGTH:
         flash("Notes are too long")
-        return redirect("/links/new")
+        return render_new_link_form(title, url, notes, selected_category_ids)
 
     if not url.startswith(("http://", "https://")):
         flash("URL must start with http:// or https://")
-        return redirect("/links/new")
+        return render_new_link_form(title, url, notes, selected_category_ids)
 
-    link_id = links.add_link(title, url, notes, user_id)
-
-    category_ids = request.form.getlist("categories")
-
-    for category_id in category_ids:
+    for category_id in selected_category_ids:
         if not categories.category_exists(category_id):
             abort(403)
 
+    link_id = links.add_link(title, url, notes, user_id)
+
+    for category_id in selected_category_ids:
         categories.add_link_category(link_id, category_id)
 
     return redirect("/link/" + str(link_id))
@@ -347,7 +379,7 @@ def add_comment(link_id):
     return redirect("/link/" + str(link_id))
 
 
-@app.route("/edit_link/<int:link_id>", methods = ["GET", "POST"])
+@app.route("/edit_link/<int:link_id>", methods=["GET", "POST"])
 def edit_link(link_id):
     login_error = require_login()
     if login_error:
@@ -366,9 +398,9 @@ def edit_link(link_id):
     if request.method == "GET":
         return render_template(
             "edit_link.html",
-            link = link,
-            categories = all_categories,
-            selected_category_ids = selected_category_ids)
+            link=link,
+            categories=all_categories,
+            selected_category_ids=selected_category_ids)
 
     check_csrf()
 
@@ -380,9 +412,9 @@ def edit_link(link_id):
     def render_edit_form():
         return render_template(
             "edit_link.html",
-            link = link,
-            categories = all_categories,
-            selected_category_ids = selected_category_ids)
+            link=link,
+            categories=all_categories,
+            selected_category_ids=selected_category_ids)
 
     title_error = validate_link_title(title)
     if title_error:
@@ -418,7 +450,7 @@ def edit_link(link_id):
     return redirect("/link/" + str(link_id))
 
 
-@app.route("/remove_link/<int:link_id>", methods = ["GET", "POST"])
+@app.route("/remove_link/<int:link_id>", methods=["GET", "POST"])
 def remove_link(link_id):
     login_error = require_login()
     if login_error:
@@ -432,7 +464,7 @@ def remove_link(link_id):
     require_link_owner(link)
 
     if request.method == "GET":
-        return render_template("remove_link.html", link = link)
+        return render_template("remove_link.html", link=link)
 
     check_csrf()
 
@@ -445,7 +477,7 @@ def remove_link(link_id):
     return redirect("/link/" + str(link_id))
 
 
-@app.route("/search_links", methods = ["GET"])
+@app.route("/search_links", methods=["GET"])
 def search_links():
     login_error = require_login()
     if login_error:
@@ -463,16 +495,15 @@ def search_links():
     found_links = links.search_links(query)
 
     link_categories = {}
-
     for link in found_links:
         link_categories[link["id"]] = categories.get_link_categories(link["id"])
 
     return render_template(
         "links.html",
-        links = found_links,
-        link_categories = link_categories,
-        search_performed = True,
-        query = query)
+        links=found_links,
+        link_categories=link_categories,
+        search_performed=True,
+        query=query)
 
 
 @app.route("/user/<int:user_id>")
