@@ -1,9 +1,8 @@
-import secrets
-
 import markupsafe
-from flask import Flask, abort, flash, redirect, render_template, request, session
+from flask import Flask, abort, flash, redirect, render_template, request
 from werkzeug.security import check_password_hash, generate_password_hash
 
+import authentication
 import categories
 import comments
 import config
@@ -29,34 +28,34 @@ def show_lines(content):
     return markupsafe.Markup(content)
 
 
-def csrf_token():
-    if "csrf_token" not in session:
-        session["csrf_token"] = secrets.token_hex(16)
-    return session["csrf_token"]
-
-
-app.jinja_env.globals["csrf_token"] = csrf_token
-
-
-def check_csrf():
-    if request.form.get("csrf_token") != session.get("csrf_token"):
-        abort(403)
-
-
-def require_login():
-    if "user_id" not in session:
-        return redirect("/login")
-    return None
-
-
-def require_link_owner(link):
-    if link["user_id"] != session["user_id"]:
-        abort(403)
+app.jinja_env.globals["csrf_token"] = authentication.csrf_token
 
 
 def get_link_category_map(link_list):
     link_ids = [link["id"] for link in link_list]
     return categories.get_categories_for_links(link_ids)
+
+
+def get_link_form_error(title, url, notes):
+    title_error = validators.validate_link_title(title)
+    if title_error:
+        return title_error
+
+    url_error = validators.validate_url(url)
+    if url_error:
+        return url_error
+
+    notes_error = validators.validate_notes(notes)
+    if notes_error:
+        return notes_error
+
+    return None
+
+
+def check_category_ids(category_ids):
+    for category_id in category_ids:
+        if not categories.category_exists(category_id):
+            abort(403)
 
 
 def render_new_link_form(title="", url="", notes="", selected_category_ids=None):
@@ -104,7 +103,7 @@ def render_link_page(link_id, filled_comment=""):
 
 @app.route("/")
 def index():
-    if "user_id" in session:
+    if authentication.is_logged_in():
         return redirect("/links")
 
     return redirect("/login")
@@ -115,7 +114,7 @@ def register():
     if request.method == "GET":
         return render_template("register.html", filled={})
 
-    check_csrf()
+    authentication.check_csrf()
 
     username = request.form["username"].strip()
     password1 = request.form["password1"]
@@ -156,7 +155,7 @@ def login():
     if request.method == "GET":
         return render_template("login.html", filled={})
 
-    check_csrf()
+    authentication.check_csrf()
 
     username = request.form["username"].strip()
     password = request.form["password"]
@@ -170,9 +169,7 @@ def login():
         return render_template("login.html", filled=filled)
 
     if check_password_hash(user["password_hash"], password):
-        session["user_id"] = user["id"]
-        session["username"] = user["username"]
-        session["csrf_token"] = secrets.token_hex(16)
+        authentication.login_user(user)
         return redirect("/links")
 
     flash("Invalid username or password")
@@ -181,19 +178,19 @@ def login():
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    login_error = require_login()
+    login_error = authentication.require_login()
     if login_error:
         return login_error
 
-    check_csrf()
-    session.clear()
+    authentication.check_csrf()
+    authentication.logout_user()
     return redirect("/login")
 
 
 @app.route("/links", methods=["GET"])
 @app.route("/links/<int:page>", methods=["GET"])
 def show_links(page=1):
-    login_error = require_login()
+    login_error = authentication.require_login()
     if login_error:
         return login_error
 
@@ -221,7 +218,7 @@ def show_links(page=1):
 
 @app.route("/links/new")
 def new_link():
-    login_error = require_login()
+    login_error = authentication.require_login()
     if login_error:
         return login_error
 
@@ -230,7 +227,7 @@ def new_link():
 
 @app.route("/link/<int:link_id>")
 def show_link(link_id):
-    login_error = require_login()
+    login_error = authentication.require_login()
     if login_error:
         return login_error
 
@@ -268,36 +265,24 @@ def show_link(link_id):
 
 @app.route("/add_link", methods=["POST"])
 def add_link():
-    login_error = require_login()
+    login_error = authentication.require_login()
     if login_error:
         return login_error
 
-    check_csrf()
+    authentication.check_csrf()
 
     title = request.form["title"].strip()
     url = request.form["url"].strip()
     notes = request.form.get("notes", "").strip()
     selected_category_ids = request.form.getlist("categories")
-    user_id = session["user_id"]
+    user_id = authentication.get_user_id()
 
-    title_error = validators.validate_link_title(title)
-    if title_error:
-        flash(title_error)
+    form_error = get_link_form_error(title, url, notes)
+    if form_error:
+        flash(form_error)
         return render_new_link_form(title, url, notes, selected_category_ids)
 
-    url_error = validators.validate_url(url)
-    if url_error:
-        flash(url_error)
-        return render_new_link_form(title, url, notes, selected_category_ids)
-
-    notes_error = validators.validate_notes(notes)
-    if notes_error:
-        flash(notes_error)
-        return render_new_link_form(title, url, notes, selected_category_ids)
-
-    for category_id in selected_category_ids:
-        if not categories.category_exists(category_id):
-            abort(403)
+    check_category_ids(selected_category_ids)
 
     link_id = links.add_link(title, url, notes, user_id)
 
@@ -309,11 +294,11 @@ def add_link():
 
 @app.route("/add_comment/<int:link_id>", methods=["POST"])
 def add_comment(link_id):
-    login_error = require_login()
+    login_error = authentication.require_login()
     if login_error:
         return login_error
 
-    check_csrf()
+    authentication.check_csrf()
 
     link = links.get_link(link_id)
 
@@ -328,14 +313,17 @@ def add_comment(link_id):
         flash(comment_error)
         return render_link_page(link_id, content)
 
-    comments.add_comment(link_id, session["user_id"], cleaned_content)
+    comments.add_comment(
+        link_id,
+        authentication.get_user_id(),
+        cleaned_content)
 
     return redirect("/link/" + str(link_id))
 
 
 @app.route("/edit_link/<int:link_id>", methods=["GET", "POST"])
 def edit_link(link_id):
-    login_error = require_login()
+    login_error = authentication.require_login()
     if login_error:
         return login_error
 
@@ -344,7 +332,7 @@ def edit_link(link_id):
     if not link:
         abort(404)
 
-    require_link_owner(link)
+    authentication.require_link_owner(link)
 
     all_categories = categories.get_all_categories()
     selected_category_ids = categories.get_link_category_ids(link_id)
@@ -356,7 +344,7 @@ def edit_link(link_id):
             categories=all_categories,
             selected_category_ids=selected_category_ids)
 
-    check_csrf()
+    authentication.check_csrf()
 
     title = request.form["title"].strip()
     url = request.form["url"].strip()
@@ -370,24 +358,12 @@ def edit_link(link_id):
             categories=all_categories,
             selected_category_ids=selected_category_ids)
 
-    title_error = validators.validate_link_title(title)
-    if title_error:
-        flash(title_error)
+    form_error = get_link_form_error(title, url, notes)
+    if form_error:
+        flash(form_error)
         return render_edit_form()
 
-    url_error = validators.validate_url(url)
-    if url_error:
-        flash(url_error)
-        return render_edit_form()
-
-    notes_error = validators.validate_notes(notes)
-    if notes_error:
-        flash(notes_error)
-        return render_edit_form()
-
-    for category_id in selected_category_ids:
-        if not categories.category_exists(category_id):
-            abort(403)
+    check_category_ids(selected_category_ids)
 
     links.update_link(link_id, title, url, notes)
 
@@ -400,7 +376,7 @@ def edit_link(link_id):
 
 @app.route("/remove_link/<int:link_id>", methods=["GET", "POST"])
 def remove_link(link_id):
-    login_error = require_login()
+    login_error = authentication.require_login()
     if login_error:
         return login_error
 
@@ -409,12 +385,12 @@ def remove_link(link_id):
     if not link:
         abort(404)
 
-    require_link_owner(link)
+    authentication.require_link_owner(link)
 
     if request.method == "GET":
         return render_template("remove_link.html", link=link)
 
-    check_csrf()
+    authentication.check_csrf()
 
     if "continue" in request.form:
         comments.remove_link_comments(link_id)
@@ -427,7 +403,7 @@ def remove_link(link_id):
 
 @app.route("/search_links", methods=["GET"])
 def search_links():
-    login_error = require_login()
+    login_error = authentication.require_login()
     if login_error:
         return login_error
 
@@ -467,7 +443,7 @@ def search_links():
 
 @app.route("/user/<int:user_id>")
 def user_page(user_id):
-    login_error = require_login()
+    login_error = authentication.require_login()
     if login_error:
         return login_error
 
