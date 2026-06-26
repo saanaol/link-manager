@@ -495,6 +495,7 @@ def search_links():
         return login_error
 
     query = request.args.get("query", "").strip()
+    page = request.args.get("page", 1, type=int)
 
     if len(query) > SEARCH_QUERY_MAX_LENGTH:
         flash("Search query must be at most 100 characters long")
@@ -503,7 +504,17 @@ def search_links():
     if not query:
         return redirect("/links")
 
-    found_links = links.search_links(query)
+    if page < 1:
+        return redirect("/search_links?query=" + query)
+
+    link_count = links.count_search_links(query)
+    page_count = math.ceil(link_count / PAGE_SIZE)
+    page_count = max(page_count, 1)
+
+    if page > page_count:
+        return redirect("/search_links?query=" + query + "&page=" + str(page_count))
+
+    found_links = links.search_links(query, page, PAGE_SIZE)
     link_ids = [link["id"] for link in found_links]
     link_categories = categories.get_categories_for_links(link_ids)
 
@@ -513,8 +524,8 @@ def search_links():
         link_categories=link_categories,
         search_performed=True,
         query=query,
-        page=1,
-        page_count=1)
+        page=page,
+        page_count=page_count)
 
 
 @app.route("/user/<int:user_id>")

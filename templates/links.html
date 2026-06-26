@@ -72,13 +72,25 @@
   {% if page_count > 1 %}
     <p class="pagination">
       {% if page > 1 %}
-        <a href="/links/{{ page - 1 }}">&lt;&lt; Previous</a>
+        {% if search_performed %}
+          <a href="/search_links?query={{ query | urlencode }}&page={{ page - 1 }}">
+            &lt;&lt; Previous
+          </a>
+        {% else %}
+          <a href="/links/{{ page - 1 }}">&lt;&lt; Previous</a>
+        {% endif %}
       {% endif %}
 
       Page {{ page }}/{{ page_count }}
 
       {% if page < page_count %}
-        <a href="/links/{{ page + 1 }}">Next &gt;&gt;</a>
+        {% if search_performed %}
+          <a href="/search_links?query={{ query | urlencode }}&page={{ page + 1 }}">
+            Next &gt;&gt;
+          </a>
+        {% else %}
+          <a href="/links/{{ page + 1 }}">Next &gt;&gt;</a>
+        {% endif %}
       {% endif %}
     </p>
   {% endif %}
