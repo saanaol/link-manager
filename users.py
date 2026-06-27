@@ -1,3 +1,5 @@
+"""Database queries for users."""
+
 import sqlite3
 import db
 

@@ -1,3 +1,5 @@
+"""Database connection and query helper functions."""
+
 import sqlite3
 from flask import g
 

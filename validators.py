@@ -1,3 +1,5 @@
+"""Validation helper functions for form inputs."""
+
 import re
 
 

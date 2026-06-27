@@ -1,3 +1,5 @@
+"""Seed script for generating test data."""
+
 import random
 import sqlite3
 

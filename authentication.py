@@ -1,3 +1,5 @@
+"""Authentication, session and CSRF helper functions."""
+
 import secrets
 
 from flask import abort, redirect, request, session

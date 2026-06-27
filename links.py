@@ -1,3 +1,5 @@
+"""Database queries for links."""
+
 import db
 
 

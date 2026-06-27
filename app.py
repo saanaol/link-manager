@@ -1,3 +1,5 @@
+"""Flask routes for the application."""
+
 import markupsafe
 from flask import Flask, abort, flash, redirect, render_template, request, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -13,7 +15,7 @@ import validators
 
 
 app = Flask(__name__)
-app.secret_key = config.secret_key
+app.secret_key = config.SECRET_KEY
 
 
 PAGE_SIZE = 10

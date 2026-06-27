@@ -1,3 +1,5 @@
+"""Database queries for comments."""
+
 import db
 
 

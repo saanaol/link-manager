@@ -1,3 +1,5 @@
+"""Pagination helper function."""
+
 import math
 
 
