@@ -154,4 +154,5 @@ def main():
     print("Password for all test users:", PASSWORD)
 
 
-main()
+if __name__ == "__main__":
+    main()

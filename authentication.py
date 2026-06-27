@@ -21,7 +21,7 @@ def check_csrf():
     if request.form.get("csrf_token") != session["csrf_token"]:
         abort(403)
 
-  
+
 def require_login():
     user_id = session.get("user_id")
     username = session.get("username")

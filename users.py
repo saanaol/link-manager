@@ -34,7 +34,8 @@ def add_user(username, password_hash):
         return False
 
     return True
-    
+
+
 def get_session_user(user_id, username):
     sql = """SELECT id, username
              FROM users
