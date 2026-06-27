@@ -24,18 +24,6 @@ def get_links(page, page_size):
     return db.query(sql, [limit, offset])
 
 
-def get_all_links():
-    sql = """
-        SELECT l.id, l.title, l.url, l.user_id, l.category_id,
-               u.username, c.name category_name
-        FROM links l
-        JOIN users u ON l.user_id = u.id
-        LEFT JOIN categories c ON l.category_id = c.id
-        ORDER BY l.id DESC
-    """
-    return db.query(sql)
-
-
 def get_link(link_id):
     sql = """
         SELECT l.id, l.title, l.url, l.notes, l.user_id,
