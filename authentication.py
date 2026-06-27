@@ -4,6 +4,8 @@ import secrets
 
 from flask import abort, redirect, request, session
 
+import users
+
 
 def csrf_token():
     if "csrf_token" not in session:
@@ -19,9 +21,17 @@ def check_csrf():
     if request.form.get("csrf_token") != session["csrf_token"]:
         abort(403)
 
-
+  
 def require_login():
-    if "user_id" not in session:
+    user_id = session.get("user_id")
+    username = session.get("username")
+
+    if not user_id or not username:
+        session.clear()
+        return redirect("/login")
+
+    if not users.get_session_user(user_id, username):
+        session.clear()
         return redirect("/login")
 
     return None
@@ -43,7 +53,13 @@ def logout_user():
 
 
 def is_logged_in():
-    return "user_id" in session
+    user_id = session.get("user_id")
+    username = session.get("username")
+
+    if not user_id or not username:
+        return False
+
+    return bool(users.get_session_user(user_id, username))
 
 
 def get_user_id():
