@@ -10,6 +10,12 @@
     <a href="{{ link.url }}">{{ link.url }}</a>
   </p>
 
+  {% if link.category_name %}
+    <p>
+      <strong>Category:</strong> {{ link.category_name }}
+    </p>
+  {% endif %}
+
   {% if link.notes %}
     <p class="link-notes">
       <strong>Notes:</strong> {{ link.notes | show_lines }}
@@ -21,15 +27,6 @@
     <a href="/user/{{ link.user_id }}">{{ link.username }}</a>,
     {{ link.created_at }}{% if link.updated_at %}, edited {{ link.updated_at }}{% endif %}
   </p>
-
-  {% if categories %}
-    <p>
-      Categories:
-      {% for category in categories %}
-        {{ category.name }}{% if not loop.last %}, {% endif %}
-      {% endfor %}
-    </p>
-  {% endif %}
 </div>
 
 {% if session.user_id %}

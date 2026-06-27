@@ -31,11 +31,6 @@ def show_lines(content):
 app.jinja_env.globals["csrf_token"] = authentication.csrf_token
 
 
-def get_link_category_map(link_list):
-    link_ids = [link["id"] for link in link_list]
-    return categories.get_categories_for_links(link_ids)
-
-
 def get_link_form_error(title, url, notes):
     title_error = validators.validate_link_title(title)
     if title_error:
@@ -52,16 +47,21 @@ def get_link_form_error(title, url, notes):
     return None
 
 
-def check_category_ids(category_ids):
-    for category_id in category_ids:
-        if not categories.category_exists(category_id):
-            abort(403)
+def check_category_id(category_id):
+    if category_id and not categories.category_exists(category_id):
+        abort(403)
 
 
-def render_new_link_form(title="", url="", notes="", selected_category_ids=None):
-    if selected_category_ids is None:
-        selected_category_ids = []
+def get_category_id_from_form():
+    category_id = request.form.get("category_id", "")
 
+    if category_id:
+        return category_id
+
+    return None
+
+
+def render_new_link_form(title="", url="", notes="", selected_category_id=""):
     all_categories = categories.get_all_categories()
 
     return render_template(
@@ -72,7 +72,7 @@ def render_new_link_form(title="", url="", notes="", selected_category_ids=None)
             "url": url,
             "notes": notes,
         },
-        selected_category_ids=selected_category_ids)
+        selected_category_id=selected_category_id)
 
 
 def render_link_page(link_id, filled_comment=""):
@@ -85,7 +85,6 @@ def render_link_page(link_id, filled_comment=""):
     comment_count = comments.count_link_comments(link_id)
     page_count = pagination.get_page_count(comment_count, COMMENT_PAGE_SIZE)
 
-    link_categories = categories.get_link_categories(link_id)
     link_comments = comments.get_link_comments(
         link_id,
         page,
@@ -94,7 +93,6 @@ def render_link_page(link_id, filled_comment=""):
     return render_template(
         "link.html",
         link=link,
-        categories=link_categories,
         comments=link_comments,
         filled_comment=filled_comment,
         page=page,
@@ -204,12 +202,10 @@ def show_links(page=1):
         return redirect("/links/" + str(page_count))
 
     page_links = links.get_links(page, PAGE_SIZE)
-    link_categories = get_link_category_map(page_links)
 
     return render_template(
         "links.html",
         links=page_links,
-        link_categories=link_categories,
         search_performed=False,
         query="",
         page=page,
@@ -247,7 +243,6 @@ def show_link(link_id):
     if page > page_count:
         return redirect("/link/" + str(link_id) + "?page=" + str(page_count))
 
-    link_categories = categories.get_link_categories(link_id)
     link_comments = comments.get_link_comments(
         link_id,
         page,
@@ -256,7 +251,6 @@ def show_link(link_id):
     return render_template(
         "link.html",
         link=link,
-        categories=link_categories,
         comments=link_comments,
         page=page,
         page_count=page_count,
@@ -274,20 +268,18 @@ def add_link():
     title = request.form["title"].strip()
     url = request.form["url"].strip()
     notes = request.form.get("notes", "").strip()
-    selected_category_ids = request.form.getlist("categories")
+    category_id = get_category_id_from_form()
+    selected_category_id = category_id or ""
     user_id = authentication.get_user_id()
 
     form_error = get_link_form_error(title, url, notes)
     if form_error:
         flash(form_error)
-        return render_new_link_form(title, url, notes, selected_category_ids)
+        return render_new_link_form(title, url, notes, selected_category_id)
 
-    check_category_ids(selected_category_ids)
+    check_category_id(category_id)
 
-    link_id = links.add_link(title, url, notes, user_id)
-
-    for category_id in selected_category_ids:
-        categories.add_link_category(link_id, category_id)
+    link_id = links.add_link(title, url, notes, user_id, category_id)
 
     return redirect("/link/" + str(link_id))
 
@@ -335,41 +327,50 @@ def edit_link(link_id):
     authentication.require_link_owner(link)
 
     all_categories = categories.get_all_categories()
-    selected_category_ids = categories.get_link_category_ids(link_id)
 
     if request.method == "GET":
+        selected_category_id = ""
+        if link["category_id"]:
+            selected_category_id = str(link["category_id"])
+
         return render_template(
             "edit_link.html",
             link=link,
             categories=all_categories,
-            selected_category_ids=selected_category_ids)
+            selected_category_id=selected_category_id)
 
     authentication.check_csrf()
 
     title = request.form["title"].strip()
     url = request.form["url"].strip()
     notes = request.form.get("notes", "").strip()
-    selected_category_ids = request.form.getlist("categories")
+    category_id = get_category_id_from_form()
+    selected_category_id = category_id or ""
 
     def render_edit_form():
+        filled_link = {
+            "id": link["id"],
+            "title": title,
+            "url": url,
+            "notes": notes,
+            "user_id": link["user_id"],
+            "category_id": category_id,
+        }
+
         return render_template(
             "edit_link.html",
-            link=link,
+            link=filled_link,
             categories=all_categories,
-            selected_category_ids=selected_category_ids)
+            selected_category_id=selected_category_id)
 
     form_error = get_link_form_error(title, url, notes)
     if form_error:
         flash(form_error)
         return render_edit_form()
 
-    check_category_ids(selected_category_ids)
+    check_category_id(category_id)
 
-    links.update_link(link_id, title, url, notes)
-
-    categories.remove_link_categories(link_id)
-    for category_id in selected_category_ids:
-        categories.add_link_category(link_id, category_id)
+    links.update_link(link_id, title, url, notes, category_id)
 
     return redirect("/link/" + str(link_id))
 
@@ -394,7 +395,6 @@ def remove_link(link_id):
 
     if "continue" in request.form:
         comments.remove_link_comments(link_id)
-        categories.remove_link_categories(link_id)
         links.remove_link(link_id)
         return redirect("/links")
 
@@ -429,12 +429,10 @@ def search_links():
             "/search_links?query=" + query + "&page=" + str(page_count))
 
     found_links = links.search_links(query, page, PAGE_SIZE)
-    link_categories = get_link_category_map(found_links)
 
     return render_template(
         "links.html",
         links=found_links,
-        link_categories=link_categories,
         search_performed=True,
         query=query,
         page=page,

@@ -12,6 +12,7 @@ CREATE TABLE links (
     url TEXT NOT NULL,
     notes TEXT,
     user_id INTEGER REFERENCES users,
+    category_id INTEGER REFERENCES categories,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT
 );
@@ -19,12 +20,6 @@ CREATE TABLE links (
 CREATE TABLE categories (
     id INTEGER PRIMARY KEY,
     name TEXT UNIQUE NOT NULL
-);
-
-CREATE TABLE link_categories (
-    link_id INTEGER REFERENCES links ON DELETE CASCADE,
-    category_id INTEGER REFERENCES categories ON DELETE CASCADE,
-    PRIMARY KEY (link_id, category_id)
 );
 
 CREATE TABLE comments (
@@ -40,5 +35,4 @@ CREATE INDEX index_links_user_id ON links(user_id);
 CREATE INDEX index_comments_link_id ON comments(link_id);
 CREATE INDEX index_comments_user_id ON comments(user_id);
 
-CREATE INDEX index_link_categories_link_id ON link_categories(link_id);
-CREATE INDEX index_link_categories_category_id ON link_categories(category_id);
+CREATE INDEX index_links_category_id ON links(category_id);

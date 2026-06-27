@@ -58,12 +58,9 @@
         <a href="/user/{{ link.user_id }}">{{ link.username }}</a>
       </p>
 
-      {% if link_categories[link.id] %}
+      {% if link.category_name %}
         <p>
-          Categories:
-          {% for category in link_categories[link.id] %}
-            {{ category.name }}{% if not loop.last %}, {% endif %}
-          {% endfor %}
+          <strong>Category:</strong> {{ link.category_name }}
         </p>
       {% endif %}
     </div>
