@@ -25,14 +25,14 @@ app.py:381:0: C0116: Missing function or method docstring (missing-function-docs
 app.py:407:0: C0116: Missing function or method docstring (missing-function-docstring)
 app.py:447:0: C0116: Missing function or method docstring (missing-function-docstring)
 ************* Module authentication
-authentication.py:8:0: C0116: Missing function or method docstring (missing-function-docstring)
-authentication.py:15:0: C0116: Missing function or method docstring (missing-function-docstring)
-authentication.py:23:0: C0116: Missing function or method docstring (missing-function-docstring)
-authentication.py:30:0: C0116: Missing function or method docstring (missing-function-docstring)
-authentication.py:35:0: C0116: Missing function or method docstring (missing-function-docstring)
-authentication.py:41:0: C0116: Missing function or method docstring (missing-function-docstring)
+authentication.py:10:0: C0116: Missing function or method docstring (missing-function-docstring)
+authentication.py:17:0: C0116: Missing function or method docstring (missing-function-docstring)
+authentication.py:25:0: C0116: Missing function or method docstring (missing-function-docstring)
+authentication.py:40:0: C0116: Missing function or method docstring (missing-function-docstring)
 authentication.py:45:0: C0116: Missing function or method docstring (missing-function-docstring)
-authentication.py:49:0: C0116: Missing function or method docstring (missing-function-docstring)
+authentication.py:51:0: C0116: Missing function or method docstring (missing-function-docstring)
+authentication.py:55:0: C0116: Missing function or method docstring (missing-function-docstring)
+authentication.py:65:0: C0116: Missing function or method docstring (missing-function-docstring)
 ************* Module categories
 categories.py:6:0: C0116: Missing function or method docstring (missing-function-docstring)
 categories.py:11:0: C0116: Missing function or method docstring (missing-function-docstring)
@@ -51,14 +51,13 @@ db.py:22:0: C0116: Missing function or method docstring (missing-function-docstr
 links.py:6:0: C0116: Missing function or method docstring (missing-function-docstring)
 links.py:11:0: C0116: Missing function or method docstring (missing-function-docstring)
 links.py:27:0: C0116: Missing function or method docstring (missing-function-docstring)
-links.py:39:0: C0116: Missing function or method docstring (missing-function-docstring)
-links.py:53:0: C0116: Missing function or method docstring (missing-function-docstring)
-links.py:60:0: C0116: Missing function or method docstring (missing-function-docstring)
-links.py:68:0: C0116: Missing function or method docstring (missing-function-docstring)
-links.py:73:0: C0116: Missing function or method docstring (missing-function-docstring)
-links.py:93:0: C0116: Missing function or method docstring (missing-function-docstring)
-links.py:121:0: C0116: Missing function or method docstring (missing-function-docstring)
-links.py:137:0: C0116: Missing function or method docstring (missing-function-docstring)
+links.py:41:0: C0116: Missing function or method docstring (missing-function-docstring)
+links.py:48:0: C0116: Missing function or method docstring (missing-function-docstring)
+links.py:56:0: C0116: Missing function or method docstring (missing-function-docstring)
+links.py:61:0: C0116: Missing function or method docstring (missing-function-docstring)
+links.py:81:0: C0116: Missing function or method docstring (missing-function-docstring)
+links.py:109:0: C0116: Missing function or method docstring (missing-function-docstring)
+links.py:125:0: C0116: Missing function or method docstring (missing-function-docstring)
 ************* Module pagination
 pagination.py:6:0: C0116: Missing function or method docstring (missing-function-docstring)
 ************* Module seed
@@ -75,6 +74,7 @@ users.py:7:0: C0116: Missing function or method docstring (missing-function-docs
 users.py:13:0: C0116: Missing function or method docstring (missing-function-docstring)
 users.py:23:0: C0116: Missing function or method docstring (missing-function-docstring)
 users.py:29:0: C0116: Missing function or method docstring (missing-function-docstring)
+users.py:39:0: C0116: Missing function or method docstring (missing-function-docstring)
 ************* Module validators
 validators.py:18:0: C0116: Missing function or method docstring (missing-function-docstring)
 validators.py:22:0: C0116: Missing function or method docstring (missing-function-docstring)
@@ -86,7 +86,7 @@ validators.py:81:0: C0116: Missing function or method docstring (missing-functio
 validators.py:94:0: C0116: Missing function or method docstring (missing-function-docstring)
 
 ------------------------------------------------------------------
-Your code has been rated at 8.72/10 (previous run: 8.72/10, +0.00)
+Your code has been rated at 8.75/10 (previous run: 8.75/10, +0.00)
 ```
 
 The following sections describe the remaining warnings and explain why they were not changed in the application.
