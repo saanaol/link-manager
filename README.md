@@ -68,7 +68,7 @@ The database was created with the following commands:
 rm database.db
 sqlite3 database.db < schema.sql
 sqlite3 database.db < init.sql
-python seed.py --large
+python seed.py
 ```
 
 After creating the large test database, I tested the following pages:
