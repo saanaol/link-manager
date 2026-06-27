@@ -1,5 +1,5 @@
 import markupsafe
-from flask import Flask, abort, flash, redirect, render_template, request
+from flask import Flask, abort, flash, redirect, render_template, request, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import authentication
@@ -419,14 +419,16 @@ def search_links():
         return redirect("/links")
 
     if page < 1:
-        return redirect("/search_links?query=" + query)
+        return redirect(url_for("search_links", query=query))
 
     link_count = links.count_search_links(query)
     page_count = pagination.get_page_count(link_count, PAGE_SIZE)
 
     if page > page_count:
-        return redirect(
-            "/search_links?query=" + query + "&page=" + str(page_count))
+        return redirect(url_for(
+            "search_links",
+            query=query,
+            page=page_count))
 
     found_links = links.search_links(query, page, PAGE_SIZE)
 
